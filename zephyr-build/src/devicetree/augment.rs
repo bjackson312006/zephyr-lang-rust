@@ -133,6 +133,13 @@ pub enum Action {
     },
     /// Generate all of the labels as its own node.
     Labels,
+    /// Generate a Rust driver instance (for drivers using #[zephyr::driver] macro)
+    DriverInstance {
+        /// The driver struct name (e.g., "Tmp11xDriver")
+        driver_struct: String,
+        /// The subsystem this driver belongs to (e.g., "sensor")
+        subsystem: String,
+    },
 }
 
 impl Action {
@@ -143,6 +150,10 @@ impl Action {
                 device,
                 static_type,
             } => raw.generate(node, device, static_type.as_deref()),
+            Action::DriverInstance {
+                driver_struct,
+                subsystem,
+            } => generate_driver_instance(node, driver_struct, subsystem),
             Action::Labels => {
                 let nodes = tree.labels.iter().map(|(k, v)| {
                     let name = dt_to_lower_id(k);
@@ -288,6 +299,76 @@ impl ArgInfo {
                 quote! {
                     #(#reg),*
                 }
+            }
+        }
+    }
+}
+
+/// Generate a driver instance for a node (SENSOR_DEVICE_DT_INST_DEFINE equivalent)
+fn generate_driver_instance(node: &Node, driver_struct: &str, _subsystem: &str) -> TokenStream {
+    let driver_path = str_to_path(driver_struct);
+    let ord = node.ord;
+    let rawdev = format_ident!("__device_dts_ord_{}", ord);
+
+    // Only generate if the node status is "okay"
+    match node.get_single_string("status") {
+        Some("okay") | Some("ok") | None => {
+            let driver_lower = driver_struct.to_lowercase();
+            let data_name = format_ident!("{}_DATA", driver_struct.to_uppercase());
+            let config_name = format_ident!("{}_CONFIG", driver_struct.to_uppercase());
+            let api_name = format_ident!("{}_DRIVER_API", driver_struct.to_uppercase());
+            let init_fn_name = format_ident!("__{}_init", driver_lower);
+
+            quote! {
+                /// Get the raw `const struct device *` of the device tree generated node.
+                pub unsafe fn get_instance_raw() -> *const crate::raw::device {
+                    &crate::raw::#rawdev
+                }
+
+                /// Get the driver instance for this device
+                pub fn get_instance() -> Option<#driver_path> {
+                    unsafe {
+                        let device_ptr = get_instance_raw();
+                        if device_ptr.is_null() {
+                            return None;
+                        }
+
+                        // Get pointers to the static data, config, and API
+                        let data = &#data_name as *const _ as *mut _;
+                        let config = &#config_name as *const _;
+                        let api = &#api_name as *const _;
+
+                        // Verify device is ready
+                        if !crate::raw::device_is_ready(device_ptr) {
+                            return None;
+                        }
+
+                        // Initialize device if needed (first time only)
+                        static INIT_ONCE: core::sync::atomic::AtomicBool =
+                            core::sync::atomic::AtomicBool::new(false);
+
+                        if !INIT_ONCE.swap(true, core::sync::atomic::Ordering::Acquire) {
+                            let result = #init_fn_name(device_ptr);
+                            if result != 0 {
+                                return None;
+                            }
+                        }
+
+                        // Create driver instance from data pointer
+                        Some(#driver_path::from_data_ptr(data))
+                    }
+                }
+
+                /// Get a reference to the data for this instance
+                pub fn get_data() -> &'static mut #driver_path {
+                    unsafe { #driver_path::from_data_ptr(&#data_name as *const _ as *mut _) }
+                }
+            }
+        }
+        _ => {
+            // Device status is not "okay", don't generate instance
+            quote! {
+                // Device status is not "okay" - no instance generated
             }
         }
     }

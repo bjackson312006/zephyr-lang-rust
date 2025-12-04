@@ -70,6 +70,7 @@
 
 pub mod align;
 pub mod device;
+pub mod driver;
 pub mod embassy;
 pub mod error;
 pub mod logging;
@@ -92,6 +93,9 @@ pub use logging::set_logger;
 
 /// Re-exported for local macro use.
 pub use paste::paste;
+
+// Re-export the driver macro.
+pub use zephyr_macros::driver;
 
 /// Re-export the proc macros.
 pub use zephyr_macros::thread;

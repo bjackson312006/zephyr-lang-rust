@@ -3,6 +3,7 @@
 use proc_macro::TokenStream;
 
 mod task;
+mod driver;
 
 /// Declares a Zephyr thread (or pool of threads) that can be spawned.
 ///
@@ -33,4 +34,42 @@ mod task;
 #[proc_macro_attribute]
 pub fn thread(args: TokenStream, item: TokenStream) -> TokenStream {
     task::run(args.into(), item.into()).into()
+}
+
+/// Declares a Zephyr device driver.
+///
+/// This macro generates the boilerplate code needed to implement a Zephyr device driver in Rust,
+/// replacing the C macro pattern (e.g., `DT_INST_FOREACH_STATUS_OKAY`) used in traditional drivers.
+///
+/// ## Arguments
+///
+/// - `compatible`: The devicetree compatible string for this driver (e.g., "ti,tmp11x-rs")
+/// - `subsystem`: The driver subsystem (e.g., sensor, i2c, gpio)
+///
+/// ## Example
+///
+/// ```rust
+/// use zephyr::driver::{SensorDriver, SensorChannel, SensorValue, Device};
+///
+/// #[zephyr::driver(compatible = "ti,tmp11x-rs", subsystem = sensor)]
+/// pub struct Tmp11xDriver {
+///     sample: u16,
+///     id: u16,
+/// }
+///
+/// impl SensorDriver for Tmp11xDriver {
+///     fn sample_fetch(&mut self, chan: SensorChannel) -> Result<(), i32> {
+///         // Fetch sample from sensor
+///         Ok(())
+///     }
+///
+///     fn channel_get(&self, chan: SensorChannel) -> Result<SensorValue, i32> {
+///         // Return sensor value
+///         Ok(SensorValue { val1: 25, val2: 0 })
+///     }
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn driver(args: TokenStream, item: TokenStream) -> TokenStream {
+    driver::driver_impl(args.into(), item.into()).into()
 }
