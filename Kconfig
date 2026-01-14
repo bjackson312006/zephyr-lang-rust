@@ -34,3 +34,5 @@ config RUST_ALLOC
 endif # RUST
 
 endmenu
+
+source "../modules/lang/rust/drivers/Kconfig"

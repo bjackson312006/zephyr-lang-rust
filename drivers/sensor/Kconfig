@@ -1,0 +1,14 @@
+# Rust Sensor configuration options
+
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig RS_SENSOR
+	bool "Rust Sensor drivers"
+	help
+	  Include sensor drivers in system config
+
+comment "Rust Sensor Device Drivers"
+
+# zephyr-keep-sorted-start
+source "../modules/lang/rust/drivers/sensor/ti/Kconfig"
+# zephyr-keep-sorted-stop

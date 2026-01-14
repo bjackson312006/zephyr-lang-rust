@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# zephyr-keep-sorted-start
+source "../modules/lang/rust/drivers/sensor/ti/tmp11x_rs/Kconfig"
+# zephyr-keep-sorted-stop
