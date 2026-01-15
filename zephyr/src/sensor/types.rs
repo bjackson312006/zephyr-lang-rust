@@ -321,3 +321,308 @@ impl SensorError {
 /// }
 /// ```
 pub type SensorResult<T> = Result<T, SensorError>;
+
+// Sensor utility functions - FFI bindings to C helper functions
+// These match the static inline functions in zephyr/include/zephyr/drivers/sensor.h
+
+/// The value of gravitational constant in micro m/s^2.
+pub const SENSOR_G: i64 = 9_806_650;
+
+/// The value of constant PI in micros.
+pub const SENSOR_PI: i64 = 3_141_592;
+
+impl SensorValue {
+    /// Helper function to convert acceleration from m/s^2 to Gs
+    ///
+    /// # Arguments
+    ///
+    /// * `ms2` - A reference to a sensor_value struct holding the acceleration, in m/s^2.
+    ///
+    /// # Returns
+    ///
+    /// The converted value, in Gs.
+    pub fn ms2_to_g(&self) -> i32 {
+        let micro_ms2 = self.val1 as i64 * 1_000_000 + self.val2 as i64;
+
+        if micro_ms2 > 0 {
+            ((micro_ms2 + SENSOR_G / 2) / SENSOR_G) as i32
+        } else {
+            ((micro_ms2 - SENSOR_G / 2) / SENSOR_G) as i32
+        }
+    }
+
+    /// Helper function to convert acceleration from Gs to m/s^2
+    ///
+    /// # Arguments
+    ///
+    /// * `g` - The G value to be converted.
+    ///
+    /// # Returns
+    ///
+    /// A SensorValue holding the result in m/s^2.
+    pub fn g_to_ms2(g: i32) -> Self {
+        let result = g as i64 * SENSOR_G;
+        Self {
+            val1: (result / 1_000_000) as i32,
+            val2: (result % 1_000_000) as i32,
+        }
+    }
+
+    /// Helper function to convert acceleration from m/s^2 to milli Gs
+    ///
+    /// # Arguments
+    ///
+    /// * `ms2` - A reference to a sensor_value struct holding the acceleration, in m/s^2.
+    ///
+    /// # Returns
+    ///
+    /// The converted value, in milli Gs.
+    pub fn ms2_to_mg(&self) -> i32 {
+        let nano_ms2 = (self.val1 as i64 * 1_000_000 + self.val2 as i64) * 1_000;
+
+        if nano_ms2 > 0 {
+            ((nano_ms2 + SENSOR_G / 2) / SENSOR_G) as i32
+        } else {
+            ((nano_ms2 - SENSOR_G / 2) / SENSOR_G) as i32
+        }
+    }
+
+    /// Helper function to convert acceleration from m/s^2 to micro Gs
+    ///
+    /// # Arguments
+    ///
+    /// * `ms2` - A reference to a sensor_value struct holding the acceleration, in m/s^2.
+    ///
+    /// # Returns
+    ///
+    /// The converted value, in micro Gs.
+    pub fn ms2_to_ug(&self) -> i32 {
+        let micro_ms2 = self.val1 as i64 * 1_000_000 + self.val2 as i64;
+
+        ((micro_ms2 * 1_000_000) / SENSOR_G) as i32
+    }
+
+    /// Helper function to convert acceleration from micro Gs to m/s^2
+    ///
+    /// # Arguments
+    ///
+    /// * `ug` - The micro G value to be converted.
+    ///
+    /// # Returns
+    ///
+    /// A SensorValue holding the result in m/s^2.
+    pub fn ug_to_ms2(ug: i32) -> Self {
+        let result = ug as i64 * SENSOR_G / 1_000_000;
+        Self {
+            val1: (result / 1_000_000) as i32,
+            val2: (result % 1_000_000) as i32,
+        }
+    }
+
+    /// Helper function for converting radians to degrees.
+    ///
+    /// # Arguments
+    ///
+    /// * `rad` - A reference to a sensor_value struct, holding the value in radians.
+    ///
+    /// # Returns
+    ///
+    /// The converted value, in degrees.
+    pub fn rad_to_degrees(&self) -> i32 {
+        let micro_rad_s = self.val1 as i64 * 1_000_000 + self.val2 as i64;
+
+        if micro_rad_s > 0 {
+            ((micro_rad_s * 180 + SENSOR_PI / 2) / SENSOR_PI) as i32
+        } else {
+            ((micro_rad_s * 180 - SENSOR_PI / 2) / SENSOR_PI) as i32
+        }
+    }
+
+    /// Helper function for converting degrees to radians.
+    ///
+    /// # Arguments
+    ///
+    /// * `d` - The value (in degrees) to be converted.
+    ///
+    /// # Returns
+    ///
+    /// A SensorValue holding the result in radians.
+    pub fn degrees_to_rad(d: i32) -> Self {
+        let result = d as i64 * SENSOR_PI / 180;
+        Self {
+            val1: (result / 1_000_000) as i32,
+            val2: (result % 1_000_000) as i32,
+        }
+    }
+
+    /// Helper function for converting radians to 10 micro degrees.
+    ///
+    /// When the unit is 1 micro degree, the range that the int32_t can represent is
+    /// +/-2147.483 degrees. In order to increase this range, here we use 10 micro
+    /// degrees as the unit.
+    ///
+    /// # Arguments
+    ///
+    /// * `rad` - A reference to a sensor_value struct, holding the value in radians.
+    ///
+    /// # Returns
+    ///
+    /// The converted value, in 10 micro degrees.
+    pub fn rad_to_10udegrees(&self) -> i32 {
+        let micro_rad_s = self.val1 as i64 * 1_000_000 + self.val2 as i64;
+
+        ((micro_rad_s * 180 * 100_000) / SENSOR_PI) as i32
+    }
+
+    /// Helper function for converting 10 micro degrees to radians.
+    ///
+    /// # Arguments
+    ///
+    /// * `d` - The value (in 10 micro degrees) to be converted.
+    ///
+    /// # Returns
+    ///
+    /// A SensorValue holding the result in radians.
+    pub fn _10udegrees_to_rad(d: i32) -> Self {
+        let result = d as i64 * SENSOR_PI / 180 / 100_000;
+        Self {
+            val1: (result / 1_000_000) as i32,
+            val2: (result % 1_000_000) as i32,
+        }
+    }
+
+    /// Helper function for converting struct sensor_value to double.
+    ///
+    /// # Returns
+    ///
+    /// The converted value as f64.
+    pub fn to_double(&self) -> f64 {
+        self.val1 as f64 + self.val2 as f64 / 1_000_000.0
+    }
+
+    /// Helper function for converting struct sensor_value to float.
+    ///
+    /// # Returns
+    ///
+    /// The converted value as f32.
+    pub fn to_float(&self) -> f32 {
+        self.val1 as f32 + self.val2 as f32 / 1_000_000.0
+    }
+
+    /// Helper function for converting double to struct sensor_value.
+    ///
+    /// # Arguments
+    ///
+    /// * `inp` - The value to convert.
+    ///
+    /// # Returns
+    ///
+    /// Ok(SensorValue) if successful, Err if the value is out of range.
+    pub fn from_double(inp: f64) -> Result<Self, ()> {
+        if inp < i32::MIN as f64 || inp > i32::MAX as f64 {
+            return Err(());
+        }
+
+        let val1 = inp as i32;
+        let val2 = ((inp - val1 as f64) * 1_000_000.0) as i32;
+
+        Ok(Self { val1, val2 })
+    }
+
+    /// Helper function for converting float to struct sensor_value.
+    ///
+    /// # Arguments
+    ///
+    /// * `inp` - The value to convert.
+    ///
+    /// # Returns
+    ///
+    /// Ok(SensorValue) if successful, Err if the value is out of range.
+    pub fn from_float(inp: f32) -> Result<Self, ()> {
+        if inp < i32::MIN as f32 || inp >= i32::MAX as f32 {
+            return Err(());
+        }
+
+        let val1 = inp as i32;
+        let val2 = ((inp - val1 as f32) * 1_000_000.0) as i32;
+
+        Ok(Self { val1, val2 })
+    }
+
+    /// Helper function for converting struct sensor_value to integer deci units.
+    ///
+    /// # Returns
+    ///
+    /// The converted value in deci units (1/10).
+    pub fn to_deci(&self) -> i64 {
+        self.val1 as i64 * 10 + self.val2 as i64 / 100_000
+    }
+
+    /// Helper function for converting struct sensor_value to integer centi units.
+    ///
+    /// # Returns
+    ///
+    /// The converted value in centi units (1/100).
+    pub fn to_centi(&self) -> i64 {
+        self.val1 as i64 * 100 + self.val2 as i64 / 10_000
+    }
+
+    /// Helper function for converting struct sensor_value to integer milli units.
+    ///
+    /// # Returns
+    ///
+    /// The converted value in milli units (1/1000).
+    pub fn to_milli(&self) -> i64 {
+        self.val1 as i64 * 1_000 + self.val2 as i64 / 1_000
+    }
+
+    /// Helper function for converting struct sensor_value to integer micro units.
+    ///
+    /// # Returns
+    ///
+    /// The converted value in micro units (1/1000000).
+    pub fn to_micro(&self) -> i64 {
+        self.val1 as i64 * 1_000_000 + self.val2 as i64
+    }
+
+    /// Helper function for converting integer milli units to struct sensor_value.
+    ///
+    /// # Arguments
+    ///
+    /// * `milli` - The value in milli units to convert.
+    ///
+    /// # Returns
+    ///
+    /// Ok(SensorValue) if successful, Err if the value is out of range.
+    pub fn from_milli(milli: i64) -> Result<Self, ()> {
+        if milli < (i32::MIN as i64 - 1) * 1_000 || milli > (i32::MAX as i64 + 1) * 1_000 {
+            return Err(());
+        }
+
+        Ok(Self {
+            val1: (milli / 1_000) as i32,
+            val2: (milli % 1_000) as i32 * 1_000,
+        })
+    }
+
+    /// Helper function for converting integer micro units to struct sensor_value.
+    ///
+    /// # Arguments
+    ///
+    /// * `micro` - The value in micro units to convert.
+    ///
+    /// # Returns
+    ///
+    /// Ok(SensorValue) if successful, Err if the value is out of range.
+    pub fn from_micro(micro: i64) -> Result<Self, ()> {
+        if micro < (i32::MIN as i64 - 1) * 1_000_000 || micro > (i32::MAX as i64 + 1) * 1_000_000
+        {
+            return Err(());
+        }
+
+        Ok(Self {
+            val1: (micro / 1_000_000) as i32,
+            val2: (micro % 1_000_000) as i32,
+        })
+    }
+}
