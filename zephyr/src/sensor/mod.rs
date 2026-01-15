@@ -14,23 +14,6 @@ pub trait SensorDriver {
     /// * `device_ready` - Whether the device is ready
     fn init(&mut self, dev: *const crate::raw::device, device_ready: bool) -> SensorResult<()>;
 
-    /// Fetch sample(s) from the sensor
-    ///
-    /// # Parameters
-    /// * `dev` - Pointer to the device structure
-    /// * `channel` - The sensor channel to fetch from
-    fn sample_fetch(
-        &mut self,
-        dev: *const crate::raw::device,
-        channel: SensorChannel,
-    ) -> SensorResult<()>;
-
-    /// Get channel value (after fetch)
-    ///
-    /// # Parameters
-    /// * `channel` - The sensor channel to read from
-    fn channel_get(&self, channel: SensorChannel) -> SensorResult<SensorValue>;
-
     /// Set sensor attribute (optional)
     ///
     /// # Parameters
@@ -45,7 +28,7 @@ pub trait SensorDriver {
         _attr: i32,
         _value: &SensorValue,
     ) -> SensorResult<()> {
-        Ok(())
+        Err(SensorError::NotSupported)
     }
 
     /// Get sensor attribute (optional)
@@ -59,9 +42,54 @@ pub trait SensorDriver {
         _dev: *const crate::raw::device,
         _channel: SensorChannel,
         _attr: i32,
-    ) -> SensorResult<()> {
-        Ok(())
+    ) -> SensorResult<SensorValue> {
+        Err(SensorError::NotSupported)
     }
+
+    /// Set trigger configuration (optional)
+    ///
+    /// # Parameters
+    /// * `_dev` - Pointer to the device structure
+    /// * `_trig` - Pointer to the trigger configuration
+    /// * `_handler` - Trigger handler callback
+    fn trigger_set(
+        &mut self,
+        _dev: *const crate::raw::device,
+        _trig: *const crate::raw::sensor_trigger,
+        _handler: crate::raw::sensor_trigger_handler_t,
+    ) -> SensorResult<()> {
+        Err(SensorError::NotSupported)
+    }
+
+    /// Fetch sample(s) from the sensor
+    ///
+    /// # Parameters
+    /// * `dev` - Pointer to the device structure
+    /// * `channel` - The sensor channel to fetch from
+    fn sample_fetch(
+        &mut self,
+        dev: *const crate::raw::device,
+        channel: SensorChannel,
+    ) -> SensorResult<()>;
+
+    /// Fetch sample(s) from a specific sensor channel (optional)
+    ///
+    /// # Parameters
+    /// * `_dev` - Pointer to the device structure
+    /// * `_channel` - The sensor channel to fetch from
+    fn sample_fetch_chan(
+        &mut self,
+        _dev: *const crate::raw::device,
+        _channel: SensorChannel,
+    ) -> SensorResult<()> {
+        Err(SensorError::NotSupported)
+    }
+
+    /// Get channel value (after fetch)
+    ///
+    /// # Parameters
+    /// * `channel` - The sensor channel to read from
+    fn channel_get(&self, channel: SensorChannel) -> SensorResult<SensorValue>;
 }
 
 /// Macro to generate FFI exports for a sensor driver
@@ -87,7 +115,19 @@ pub trait SensorDriver {
 /// #     fn init(&mut self, _dev: *const zephyr::raw::device, _ready: bool) -> SensorResult<()> {
 /// #         Ok(())
 /// #     }
+/// #     fn attr_set(&mut self, _dev: *const zephyr::raw::device, _ch: SensorChannel, _attr: i32, _val: &SensorValue) -> SensorResult<()> {
+/// #         Ok(())
+/// #     }
+/// #     fn attr_get(&self, _dev: *const zephyr::raw::device, _ch: SensorChannel, _attr: i32) -> SensorResult<SensorValue> {
+/// #         Ok(SensorValue::default())
+/// #     }
+/// #     fn trigger_set(&mut self, _dev: *const zephyr::raw::device, _trig: *const zephyr::raw::sensor_trigger, _handler: zephyr::raw::sensor_trigger_handler_t) -> SensorResult<()> {
+/// #         Ok(())
+/// #     }
 /// #     fn sample_fetch(&mut self, _dev: *const zephyr::raw::device, _ch: SensorChannel) -> SensorResult<()> {
+/// #         Ok(())
+/// #     }
+/// #     fn sample_fetch_chan(&mut self, _dev: *const zephyr::raw::device, _ch: SensorChannel) -> SensorResult<()> {
 /// #         Ok(())
 /// #     }
 /// #     fn channel_get(&self, _ch: SensorChannel) -> SensorResult<SensorValue> {
@@ -105,10 +145,13 @@ pub trait SensorDriver {
 /// This generates the following C-callable symbols:
 /// - `<prefix>_driver_api` - The sensor API vtable (static)
 /// - `<prefix>_init` - Init function
-/// - `__<prefix>_sample_fetch` - Sample fetch wrapper
-/// - `__<prefix>_channel_get` - Channel get wrapper
 /// - `__<prefix>_attr_set` - Attribute set wrapper
 /// - `__<prefix>_attr_get` - Attribute get wrapper
+/// - `__<prefix>_trigger_set` - Trigger set wrapper
+/// - `__<prefix>_sample_fetch` - Sample fetch wrapper
+/// - `__<prefix>_channel_get` - Channel get wrapper
+/// - `__<prefix>_get_decoder` - Not implemented
+/// - `__<prefix>_submit` - Not implemented
 ///
 /// # Safety
 ///
@@ -132,13 +175,13 @@ macro_rules! sensor_ffi_exports {
             #[unsafe(no_mangle)]
             pub static [<$prefix _driver_api>]: $crate::raw::sensor_driver_api =
                 $crate::raw::sensor_driver_api {
-                    sample_fetch: Some([<__ $prefix _sample_fetch>]),
-                    channel_get: Some([<__ $prefix _channel_get>]),
                     attr_set: Some([<__ $prefix _attr_set>]),
                     attr_get: Some([<__ $prefix _attr_get>]),
-                    trigger_set: None,
-                    submit: None,
+                    trigger_set: Some([<__ $prefix _trigger_set>]),
+                    sample_fetch: Some([<__ $prefix _sample_fetch>]),
+                    channel_get: Some([<__ $prefix _channel_get>]),
                     get_decoder: None,
+                    submit: None,
                 };
 
             /// Init function
@@ -150,35 +193,6 @@ macro_rules! sensor_ffi_exports {
 
                 match DRIVER_INSTANCE.init(dev, device_ready) {
                     Ok(()) => 0,
-                    Err(e) => e.to_errno(),
-                }
-            }
-
-            /// Sample fetch FFI wrapper
-            #[unsafe(no_mangle)]
-            unsafe extern "C" fn [<__ $prefix _sample_fetch>](
-                dev: *const $crate::raw::device,
-                chan: u32,
-            ) -> c_int {
-                match DRIVER_INSTANCE.sample_fetch(dev, SensorChannel::from(chan as i32)) {
-                    Ok(()) => 0,
-                    Err(e) => e.to_errno(),
-                }
-            }
-
-            /// Channel get FFI wrapper
-            #[unsafe(no_mangle)]
-            unsafe extern "C" fn [<__ $prefix _channel_get>](
-                dev: *const $crate::raw::device,
-                chan: u32,
-                val: *mut $crate::raw::sensor_value,
-            ) -> c_int {
-                match DRIVER_INSTANCE.channel_get(SensorChannel::from(chan as i32)) {
-                    Ok(result) => {
-                        (*val).val1 = result.val1;
-                        (*val).val2 = result.val2;
-                        0
-                    }
                     Err(e) => e.to_errno(),
                 }
             }
@@ -216,7 +230,53 @@ macro_rules! sensor_ffi_exports {
                     SensorChannel::from(chan as i32),
                     attr as i32,
                 ) {
+                    Ok(result) => {
+                        (*val).val1 = result.val1;
+                        (*val).val2 = result.val2;
+                        0
+                    }
+                    Err(e) => e.to_errno(),
+                }
+            }
+
+            /// Trigger set FFI wrapper
+            #[unsafe(no_mangle)]
+            unsafe extern "C" fn [<__ $prefix _trigger_set>](
+                dev: *const $crate::raw::device,
+                trig: *const $crate::raw::sensor_trigger,
+                handler: $crate::raw::sensor_trigger_handler_t,
+            ) -> c_int {
+                match DRIVER_INSTANCE.trigger_set(dev, trig, handler) {
                     Ok(()) => 0,
+                    Err(e) => e.to_errno(),
+                }
+            }
+
+            /// Sample fetch FFI wrapper
+            #[unsafe(no_mangle)]
+            unsafe extern "C" fn [<__ $prefix _sample_fetch>](
+                dev: *const $crate::raw::device,
+                chan: u32,
+            ) -> c_int {
+                match DRIVER_INSTANCE.sample_fetch(dev, SensorChannel::from(chan as i32)) {
+                    Ok(()) => 0,
+                    Err(e) => e.to_errno(),
+                }
+            }
+
+            /// Channel get FFI wrapper
+            #[unsafe(no_mangle)]
+            unsafe extern "C" fn [<__ $prefix _channel_get>](
+                dev: *const $crate::raw::device,
+                chan: u32,
+                val: *mut $crate::raw::sensor_value,
+            ) -> c_int {
+                match DRIVER_INSTANCE.channel_get(SensorChannel::from(chan as i32)) {
+                    Ok(result) => {
+                        (*val).val1 = result.val1;
+                        (*val).val2 = result.val2;
+                        0
+                    }
                     Err(e) => e.to_errno(),
                 }
             }
