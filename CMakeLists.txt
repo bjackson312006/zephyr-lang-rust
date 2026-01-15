@@ -536,5 +536,7 @@ ${config_paths}
   add_dependencies(app librustdrv)
   add_dependencies(app rust_clippy_drv)
 
-  # Rust drivers provide their own C file.
+  # Rust drivers provide their own C file for device tree bindings but provide some basic c wrapper declarations in case
+  # it is needed when a rust application is not compiled.
+  target_sources(app PRIVATE $CACHE{RUST_MODULE_DIR}/driver.c ${WRAPPER_FILE})
 endfunction()
