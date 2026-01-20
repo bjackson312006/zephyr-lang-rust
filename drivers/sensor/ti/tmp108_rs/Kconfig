@@ -1,0 +1,22 @@
+# TMP108_RS temperature sensor configuration options
+
+# SPDX-License-Identifier: Apache-2.0
+
+config TMP108_RS
+    bool "TMP116, TMP117 and TMP119 Temperature Sensors Rust"
+    default y
+    depends on DT_HAS_TI_TMP108_RS_ENABLED
+    select I2C
+    select RUST
+    select CONFIG_LOG
+    select CONFIG_RUST_ALLOC
+    help
+      Enable driver for TMP116, TMP117 and TMP119 temperature sensors.
+
+if TMP108_RS
+
+module = TMP108_RS
+thread_priority = 10
+thread_stack_size = 1024
+
+endif

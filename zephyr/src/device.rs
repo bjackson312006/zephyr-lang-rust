@@ -10,9 +10,12 @@
 
 use crate::sync::atomic::{AtomicBool, Ordering};
 
+pub mod device_ref;
 pub mod flash;
 pub mod gpio;
 pub mod temperature_sensor;
+
+pub use device_ref::DeviceRef;
 
 // Allow dead code, because it isn't required for a given build to have any devices.
 /// Device uniqueness.

@@ -54,7 +54,7 @@ impl Tmp11xDriver {
 }
 
 impl SensorDriver for Tmp11xDriver {
-    fn init(&mut self, _dev: *const zephyr::raw::device, device_ready: bool) -> SensorResult<()> {
+    fn init(&mut self, _dev: DeviceRef, device_ready: bool) -> SensorResult<()> {
         if !device_ready {
             return Err(SensorError::NotReady);
         }
@@ -70,7 +70,7 @@ impl SensorDriver for Tmp11xDriver {
         Ok(())
     }
 
-    fn sample_fetch(&mut self, dev: *const zephyr::raw::device, channel: SensorChannel) -> SensorResult<()> {
+    fn sample_fetch(&mut self, dev: DeviceRef, channel: SensorChannel) -> SensorResult<()> {
         match channel {
             SensorChannel::All | SensorChannel::AmbientTemp => {
                 // In a real implementation, we would:
@@ -78,7 +78,7 @@ impl SensorDriver for Tmp11xDriver {
                 // 2. Convert the raw value to temperature
                 // 3. Store in self.sample
 
-                let mut sensor = match TempSensorTmp11x::try_new(dev as *const c_void) {
+                let mut sensor = match TempSensorTmp11x::try_new(dev.as_ptr() as *const c_void) {
                     Ok(sensor) => sensor,
                     Err(_) => {
                         info!("Error creating TempSensorTmp11x");

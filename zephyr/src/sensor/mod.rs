@@ -5,25 +5,27 @@
 pub mod types;
 pub use types::*;
 
+use crate::device::DeviceRef;
+
 /// Trait that all sensor drivers must implement
 pub trait SensorDriver {
     /// Initialize the driver
     ///
     /// # Parameters
-    /// * `dev` - Pointer to the device structure
+    /// * `dev` - Safe reference to the device structure
     /// * `device_ready` - Whether the device is ready
-    fn init(&mut self, dev: *const crate::raw::device, device_ready: bool) -> SensorResult<()>;
+    fn init(&mut self, dev: DeviceRef, device_ready: bool) -> SensorResult<()>;
 
     /// Set sensor attribute (optional)
     ///
     /// # Parameters
-    /// * `_dev` - Pointer to the device structure
+    /// * `_dev` - Safe reference to the device structure
     /// * `_channel` - The sensor channel
     /// * `_attr` - The attribute ID to set
     /// * `_value` - The value to set
     fn attr_set(
         &mut self,
-        _dev: *const crate::raw::device,
+        _dev: DeviceRef,
         _channel: SensorChannel,
         _attr: i32,
         _value: &SensorValue,
@@ -34,12 +36,12 @@ pub trait SensorDriver {
     /// Get sensor attribute (optional)
     ///
     /// # Parameters
-    /// * `_dev` - Pointer to the device structure
+    /// * `_dev` - Safe reference to the device structure
     /// * `_channel` - The sensor channel
     /// * `_attr` - The attribute ID to get
     fn attr_get(
         &self,
-        _dev: *const crate::raw::device,
+        _dev: DeviceRef,
         _channel: SensorChannel,
         _attr: i32,
     ) -> SensorResult<SensorValue> {
@@ -49,12 +51,12 @@ pub trait SensorDriver {
     /// Set trigger configuration (optional)
     ///
     /// # Parameters
-    /// * `_dev` - Pointer to the device structure
+    /// * `_dev` - Safe reference to the device structure
     /// * `_trig` - Pointer to the trigger configuration
     /// * `_handler` - Trigger handler callback
     fn trigger_set(
         &mut self,
-        _dev: *const crate::raw::device,
+        _dev: DeviceRef,
         _trig: *const crate::raw::sensor_trigger,
         _handler: crate::raw::sensor_trigger_handler_t,
     ) -> SensorResult<()> {
@@ -64,22 +66,22 @@ pub trait SensorDriver {
     /// Fetch sample(s) from the sensor
     ///
     /// # Parameters
-    /// * `dev` - Pointer to the device structure
+    /// * `dev` - Safe reference to the device structure
     /// * `channel` - The sensor channel to fetch from
     fn sample_fetch(
         &mut self,
-        dev: *const crate::raw::device,
+        dev: DeviceRef,
         channel: SensorChannel,
     ) -> SensorResult<()>;
 
     /// Fetch sample(s) from a specific sensor channel (optional)
     ///
     /// # Parameters
-    /// * `_dev` - Pointer to the device structure
+    /// * `_dev` - Safe reference to the device structure
     /// * `_channel` - The sensor channel to fetch from
     fn sample_fetch_chan(
         &mut self,
-        _dev: *const crate::raw::device,
+        _dev: DeviceRef,
         _channel: SensorChannel,
     ) -> SensorResult<()> {
         Err(SensorError::NotSupported)
@@ -109,25 +111,26 @@ pub trait SensorDriver {
 ///
 /// ```rust,no_run
 /// # use zephyr::sensor::{SensorDriver, SensorChannel, SensorResult, SensorValue};
+/// # use zephyr::device::DeviceRef;
 /// # struct MyDriver;
 /// # impl MyDriver { const fn new() -> Self { Self } }
 /// # impl SensorDriver for MyDriver {
-/// #     fn init(&mut self, _dev: *const zephyr::raw::device, _ready: bool) -> SensorResult<()> {
+/// #     fn init(&mut self, _dev: DeviceRef, _ready: bool) -> SensorResult<()> {
 /// #         Ok(())
 /// #     }
-/// #     fn attr_set(&mut self, _dev: *const zephyr::raw::device, _ch: SensorChannel, _attr: i32, _val: &SensorValue) -> SensorResult<()> {
+/// #     fn attr_set(&mut self, _dev: DeviceRef, _ch: SensorChannel, _attr: i32, _val: &SensorValue) -> SensorResult<()> {
 /// #         Ok(())
 /// #     }
-/// #     fn attr_get(&self, _dev: *const zephyr::raw::device, _ch: SensorChannel, _attr: i32) -> SensorResult<SensorValue> {
+/// #     fn attr_get(&self, _dev: DeviceRef, _ch: SensorChannel, _attr: i32) -> SensorResult<SensorValue> {
 /// #         Ok(SensorValue::default())
 /// #     }
-/// #     fn trigger_set(&mut self, _dev: *const zephyr::raw::device, _trig: *const zephyr::raw::sensor_trigger, _handler: zephyr::raw::sensor_trigger_handler_t) -> SensorResult<()> {
+/// #     fn trigger_set(&mut self, _dev: DeviceRef, _trig: *const zephyr::raw::sensor_trigger, _handler: zephyr::raw::sensor_trigger_handler_t) -> SensorResult<()> {
 /// #         Ok(())
 /// #     }
-/// #     fn sample_fetch(&mut self, _dev: *const zephyr::raw::device, _ch: SensorChannel) -> SensorResult<()> {
+/// #     fn sample_fetch(&mut self, _dev: DeviceRef, _ch: SensorChannel) -> SensorResult<()> {
 /// #         Ok(())
 /// #     }
-/// #     fn sample_fetch_chan(&mut self, _dev: *const zephyr::raw::device, _ch: SensorChannel) -> SensorResult<()> {
+/// #     fn sample_fetch_chan(&mut self, _dev: DeviceRef, _ch: SensorChannel) -> SensorResult<()> {
 /// #         Ok(())
 /// #     }
 /// #     fn channel_get(&self, _ch: SensorChannel) -> SensorResult<SensorValue> {
@@ -156,8 +159,9 @@ pub trait SensorDriver {
 /// # Safety
 ///
 /// The generated code properly handles the FFI boundary and converts between
-/// Rust and C types. The driver instance is stored in a static mutable variable
-/// and must be initialized with a `const fn new()` constructor.
+/// Rust and C types. Raw pointers from C are validated and converted to safe
+/// `DeviceRef` wrappers at the FFI boundary. The driver instance is stored in
+/// a static mutable variable and must be initialized with a `const fn new()` constructor.
 #[macro_export]
 macro_rules! sensor_ffi_exports {
     (
@@ -166,6 +170,7 @@ macro_rules! sensor_ffi_exports {
     ) => {
         use core::ffi::c_int;
         use $crate::sensor::{SensorChannel, SensorDriver, SensorValue};
+        use $crate::device::DeviceRef;
 
         paste::paste! {
             // Global driver instance
@@ -189,9 +194,16 @@ macro_rules! sensor_ffi_exports {
             pub unsafe extern "C" fn [<$prefix _init>](
                 dev: *const $crate::raw::device
             ) -> c_int {
-                let device_ready = !dev.is_null() && $crate::raw::device_is_ready(dev);
+                // SAFETY: Convert raw pointer to safe DeviceRef at FFI boundary
+                // We trust the C caller to provide a valid device pointer
+                let dev_ref = match unsafe { DeviceRef::from_ptr(dev) } {
+                    Some(d) => d,
+                    None => return -22, // -EINVAL
+                };
 
-                match DRIVER_INSTANCE.init(dev, device_ready) {
+                let device_ready = dev_ref.is_ready();
+
+                match DRIVER_INSTANCE.init(dev_ref, device_ready) {
                     Ok(()) => 0,
                     Err(e) => e.to_errno(),
                 }
@@ -205,9 +217,15 @@ macro_rules! sensor_ffi_exports {
                 attr: u32,
                 val: *const $crate::raw::sensor_value,
             ) -> c_int {
+                // SAFETY: Convert raw pointer to safe DeviceRef at FFI boundary
+                let dev_ref = match unsafe { DeviceRef::from_ptr(dev) } {
+                    Some(d) => d,
+                    None => return -22, // -EINVAL
+                };
+
                 let value = SensorValue::new((*val).val1, (*val).val2);
                 match DRIVER_INSTANCE.attr_set(
-                    dev,
+                    dev_ref,
                     SensorChannel::from(chan as i32),
                     attr as i32,
                     &value,
@@ -225,8 +243,14 @@ macro_rules! sensor_ffi_exports {
                 attr: u32,
                 val: *mut $crate::raw::sensor_value,
             ) -> c_int {
+                // SAFETY: Convert raw pointer to safe DeviceRef at FFI boundary
+                let dev_ref = match unsafe { DeviceRef::from_ptr(dev) } {
+                    Some(d) => d,
+                    None => return -22, // -EINVAL
+                };
+
                 match DRIVER_INSTANCE.attr_get(
-                    dev,
+                    dev_ref,
                     SensorChannel::from(chan as i32),
                     attr as i32,
                 ) {
@@ -246,7 +270,13 @@ macro_rules! sensor_ffi_exports {
                 trig: *const $crate::raw::sensor_trigger,
                 handler: $crate::raw::sensor_trigger_handler_t,
             ) -> c_int {
-                match DRIVER_INSTANCE.trigger_set(dev, trig, handler) {
+                // SAFETY: Convert raw pointer to safe DeviceRef at FFI boundary
+                let dev_ref = match unsafe { DeviceRef::from_ptr(dev) } {
+                    Some(d) => d,
+                    None => return -22, // -EINVAL
+                };
+
+                match DRIVER_INSTANCE.trigger_set(dev_ref, trig, handler) {
                     Ok(()) => 0,
                     Err(e) => e.to_errno(),
                 }
@@ -258,7 +288,13 @@ macro_rules! sensor_ffi_exports {
                 dev: *const $crate::raw::device,
                 chan: u32,
             ) -> c_int {
-                match DRIVER_INSTANCE.sample_fetch(dev, SensorChannel::from(chan as i32)) {
+                // SAFETY: Convert raw pointer to safe DeviceRef at FFI boundary
+                let dev_ref = match unsafe { DeviceRef::from_ptr(dev) } {
+                    Some(d) => d,
+                    None => return -22, // -EINVAL
+                };
+
+                match DRIVER_INSTANCE.sample_fetch(dev_ref, SensorChannel::from(chan as i32)) {
                     Ok(()) => 0,
                     Err(e) => e.to_errno(),
                 }

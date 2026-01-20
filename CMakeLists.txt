@@ -344,7 +344,7 @@ function(rust_cargo_driver DRIVER_NAME)
   # add the actual library as a BYPRODUCTS list of this command, otherwise, the first time the
   # link will fail because it doesn't think it knows how to build the library.  This will also
   # cause the relink when the cargo command actually does rebuild the rust code.
-  set(DUMMY_FILE "${CMAKE_BINARY_DIR}/always-run-cargo-drv.dummy")
+  set(DUMMY_FILE "${CMAKE_BINARY_DIR}/always-run-cargo-drv-${DRIVER_NAME}.dummy")
 
   # For each module in zephyr-rs, add entry both to the .cargo/config template and for the
   # command line, since either invocation will need to see these.
@@ -397,7 +397,7 @@ ${config_paths}
 
   # Ensure clippy compliance
   add_custom_command(
-    OUTPUT rust_clippy_cmd_drv
+    OUTPUT rust_clippy_cmd_drv_${DRIVER_NAME}
     USES_TERMINAL
     COMMAND
       ${CMAKE_COMMAND} -E
@@ -424,12 +424,12 @@ ${config_paths}
       ${command_paths}
       --target ${RUST_TARGET}
       --target-dir ${CARGO_TARGET_DIR}
-    COMMENT "Running clippy on Rust driver"
+    COMMENT "Running clippy on Rust driver ${DRIVER_NAME}"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
-  add_custom_target(rust_clippy_drv
-    DEPENDS rust_clippy_cmd_drv
+  add_custom_target(rust_clippy_drv_${DRIVER_NAME}
+    DEPENDS rust_clippy_cmd_drv_${DRIVER_NAME}
         # The variables, defined at the top level, don't seem to be accessible here.
         offsets_h
         syscall_list_h_target
@@ -472,7 +472,7 @@ ${config_paths}
   )
 
   # Be sure we don't try building this until all of the generated headers have been generated.
-  add_custom_target(librustdrv ALL
+  add_custom_target(librustdrv_${DRIVER_NAME} ALL
     DEPENDS ${DUMMY_FILE}
         # The variables, defined at the top level, don't seem to be accessible here.
         offsets_h
@@ -515,7 +515,7 @@ ${config_paths}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
-  add_custom_target(rustdocdrv
+  add_custom_target(rustdocdrv_${DRIVER_NAME}
     DEPENDS generate_rust_docs
         # The variables, defined at the top level, don't seem to be accessible here.
         offsets_h
@@ -533,10 +533,10 @@ ${config_paths}
   # Example of warning reported by ld when this fix is not in place:
   # <path>/ld.bfd: rust/target/riscv64imac-unknown-none-elf/debug/librustdrv.a(45c91108d938afe8-clzdi2.o): unsupported relocation type 0x3d
   target_link_libraries(app PUBLIC $<TARGET_PROPERTY:linker,rt_library> -Wl,--allow-multiple-definition ${RUST_LIBRARY})
-  add_dependencies(app librustdrv)
-  add_dependencies(app rust_clippy_drv)
+  add_dependencies(app librustdrv_${DRIVER_NAME})
+  add_dependencies(app rust_clippy_drv_${DRIVER_NAME})
 
   # Rust drivers provide their own C file for device tree bindings but provide some basic c wrapper declarations in case
-  # it is needed when a rust application is not compiled.
+  # it is needed when a rust application is not compiled for panic and logging definition.
   target_sources(app PRIVATE $CACHE{RUST_MODULE_DIR}/driver.c ${WRAPPER_FILE})
 endfunction()
