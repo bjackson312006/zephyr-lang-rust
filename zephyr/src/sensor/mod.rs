@@ -193,6 +193,11 @@ macro_rules! sensor_ffi_exports {
             pub unsafe extern "C" fn [<$prefix _init>](
                 dev: *const $crate::raw::device
             ) -> c_int {
+                // SAFETY: The FFI bindings to set logger is safe to call here.
+                unsafe {
+                    zephyr::set_logger().unwrap();
+                }
+
                 // SAFETY: Convert raw pointer to safe DeviceRef at FFI boundary
                 // We trust the C caller to provide a valid device pointer
                 let dev_ref = match unsafe { DeviceRef::from_ptr(dev) } {
