@@ -43,27 +43,6 @@ struct tmp11x_dev_config {
 };
 
 /*
- * This is a I2C wrapper then currently is not available in Zephyr.
- */
-int tmp11x_reg_read(const struct device *dev, uint8_t reg, uint16_t *val)
-{
-    const struct tmp11x_dev_config *cfg = dev->config;
-
-    if (i2c_burst_read_dt(&cfg->bus, reg, (uint8_t *)val, 2) < 0) {
-        return -EIO;
-    }
-
-    *val = sys_be16_to_cpu(*val);
-
-    return 0;
-}
-
-int tmp11x_reg_read_wrapper(void *ptr, uint8_t reg, uint16_t *val)
-{
-    return tmp11x_reg_read((const struct device *)ptr, reg, val);
-}
-
-/*
  * Trigger configuration (optional)
  */
 #ifdef CONFIG_TMP11X_RS_TRIGGER
