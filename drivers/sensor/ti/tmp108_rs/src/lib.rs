@@ -7,6 +7,8 @@
 //! temperature sensors using Zephyr's generic sensor framework in Rust.
 
 use log::info;
+use tmp108::Tmp108;
+use zephyr::i2c::I2cDevice;
 use zephyr::sensor::{SensorError, SensorResult};
 
 /// FFI binding for tmp108_rs_config struct from C code.
@@ -24,6 +26,8 @@ pub struct Tmp108RsConfig {
 /// All sensor logic is implemented in safe Rust.
 ///
 pub struct Tmp108Driver {
+    /// TMP108 sensor instance
+    sensor: Option<Tmp108<I2cDevice>>,
     /// Last sampled temperature
     sample: i32,
     /// Device ID
@@ -54,6 +58,7 @@ impl Tmp108Driver {
     /// This must be const to allow static initialization.
     pub const fn new() -> Self {
         Self {
+            sensor: None,
             sample: 2000, // Default to 20.00°C
             id: 0,
             addr: 0,
@@ -66,20 +71,31 @@ impl SensorDriver for Tmp108Driver {
         // SAFETY: dev is guaranteed valid, config points to Tmp108RsConfig
         let cfg = unsafe { dev.config_as::<Tmp108RsConfig>() };
 
-        // Now you can access the i2c_dt_spec bus information
-        let i2c_bus = &cfg.bus;
+        // Create I2C device from device tree spec
+        let i2c = unsafe {
+            I2cDevice::from_dt_spec(&cfg.bus)
+                .ok_or(SensorError::InvalidArgument)?
+        };
 
-        info!("TMP108 detected at I2C address 0x{:02X}", i2c_bus.addr);
+        // Check if I2C device is ready
+        if !i2c.is_ready() {
+            info!("I2C device not ready");
+            return Err(SensorError::NotReady);
+        }
 
-        self.addr = cfg.bus.addr;
+        self.addr = i2c.address();
+        info!("TMP108 I2C device created at address 0x{:02X}", self.addr);
 
-        match self.adr {
+        // Validate address and create sensor
+        match self.addr {
             0x48 => {
-                info!("TMP11x address valid: 0x{:02X}", self.addr);
+                info!("TMP108 address valid: 0x{:02X}", self.addr);
+                // Create and store TMP108 sensor with I2C device
+                self.sensor = Some(Tmp108::new_with_a0_gnd(i2c));
             }
             _ => {
-                info!("TMP11x address invalid: 0x{:02X}", self.addr);
-                return Err(SensorError::InvalidArgument); // -EINVAL
+                info!("TMP108 address invalid: 0x{:02X}", self.addr);
+                return Err(SensorError::InvalidArgument);
             }
         }
 
@@ -92,7 +108,16 @@ impl SensorDriver for Tmp108Driver {
     fn sample_fetch(&mut self, _dev: DeviceRef, channel: SensorChannel) -> SensorResult<()> {
         match channel {
             SensorChannel::All | SensorChannel::AmbientTemp => {
-                info!("AmbientTemp read requested");
+                // Get mutable sensor reference
+                let sensor = self.sensor.as_mut().ok_or(SensorError::NotReady)?;
+
+                // Read temperature from sensor
+                let temp_c = sensor.temperature().map_err(|_| SensorError::IoError)?;
+
+                // Cache the temperature value (convert to units of 0.01°C)
+                self.sample = (temp_c * 100.0) as i32;
+
+                info!("Temperature sampled: {} °C", temp_c);
                 Ok(())
             }
             _ => Err(SensorError::InvalidChannel),
@@ -102,10 +127,10 @@ impl SensorDriver for Tmp108Driver {
     fn channel_get(&self, channel: SensorChannel) -> SensorResult<SensorValue> {
         match channel {
             SensorChannel::AmbientTemp | SensorChannel::All => {
-                // Convert stored sample to SensorValue
+                // Return cached temperature value
                 // sample is in units of 0.01°C, convert to millicelsius
-                let temp_c = self.sample * 10;
-                Ok(SensorValue::from_millicelsius(temp_c))
+                let temp_millicelsius = self.sample * 10;
+                Ok(SensorValue::from_millicelsius(temp_millicelsius))
             }
             _ => Err(SensorError::InvalidChannel),
         }
@@ -113,33 +138,4 @@ impl SensorDriver for Tmp108Driver {
 
     // attr_set and attr_get use default implementations (NotSupported)
     // Override these if you need to support sensor attributes
-}
-
-unsafe extern "C" {
-    pub fn tmp11x_reg_read_wrapper(
-        ptr: *const core::ffi::c_void,
-        reg: u8,
-        val: *mut u16,
-    ) -> core::ffi::c_int;
-}
-
-/// Read a register from TMP108 via I2C using C implementation.
-///
-/// This is a thin wrapper while a Rust-based I2C implementation is developed.
-/// # Safety
-/// - `ptr` must be a valid pointer to the Zephyr I2C device context expected by the C side.
-pub unsafe fn tmp11x_reg_read(ptr: *const core::ffi::c_void, reg: u8) -> SensorResult<u16> {
-    let mut raw: u16 = 1;
-
-    if ptr.is_null() {
-        return Err(SensorError::InvalidArgument); // -EINVAL
-    }
-
-    // SAFETY: ptr is checked for null above
-    let rc = unsafe { tmp11x_reg_read_wrapper(ptr, reg, &mut raw) };
-    if rc < 0 {
-        return Err(SensorError::IoError); // -EIO
-    }
-
-    Ok(raw)
 }

@@ -33,27 +33,6 @@ struct tmp108_rs_config {
 	const struct i2c_dt_spec bus;
 };
 
-/*
- * This is a I2C wrapper then currently is not available in Zephyr.
- */
-int tmp108_reg_read(const struct device *dev, uint8_t reg, uint16_t *val)
-{
-    const struct tmp108_rs_config *cfg = dev->config;
-
-    if (i2c_burst_read_dt(&cfg->bus, reg, (uint8_t *)val, 2) < 0) {
-        return -EIO;
-    }
-
-    *val = sys_be16_to_cpu(*val);
-
-    return 0;
-}
-
-int tmp108_reg_read_wrapper(void *ptr, uint8_t reg, uint16_t *val)
-{
-    return tmp108_reg_read((const struct device *)ptr, reg, val);
-}
-
 #define TMP_RS_DEFINE(inst, t)                                                       \
 	static struct tmp108_rs_data tmp108_rs_prv_data_##inst##t;                       \
 	static const struct tmp108_rs_config tmp108_rs_config_##inst##t = {              \
