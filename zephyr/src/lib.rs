@@ -73,6 +73,7 @@ pub mod device;
 pub mod driver;
 pub mod embassy;
 pub mod error;
+pub mod i2c;
 pub mod logging;
 pub mod object;
 pub mod sensor;
