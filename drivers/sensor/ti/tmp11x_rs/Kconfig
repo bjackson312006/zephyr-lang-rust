@@ -7,9 +7,9 @@ config TMP11X_RS
     default y
     depends on DT_HAS_TI_TMP11X_RS_ENABLED
     select I2C
+    select LOG
     select RUST
-    select CONFIG_LOG
-    select CONFIG_RUST_ALLOC
+    select RUST_ALLOC
     help
       Enable driver for TMP116, TMP117 and TMP119 temperature sensors.
 

@@ -44,8 +44,7 @@ impl TemperatureSensor {
         	let ret = raw::sensor_attr_set(self.device, raw::sensor_channel_SENSOR_CHAN_AMBIENT_TEMP,
                                            raw::sensor_attribute_SENSOR_ATTR_OFFSET, &mut temp);
             if ret != 0 {
-                info!("Fail sensor_attr_set");
-                return Err(ret);
+                info!("Fail sensor_attr_set {}", ret);
             }
 
             let mut temp : raw::sensor_value = Default::default();

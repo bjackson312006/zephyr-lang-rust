@@ -13,8 +13,7 @@ pub trait SensorDriver {
     ///
     /// # Parameters
     /// * `dev` - Safe reference to the device structure
-    /// * `device_ready` - Whether the device is ready
-    fn init(&mut self, dev: DeviceRef, device_ready: bool) -> SensorResult<()>;
+    fn init(&mut self, dev: DeviceRef) -> SensorResult<()>;
 
     /// Set sensor attribute (optional)
     ///
@@ -201,9 +200,7 @@ macro_rules! sensor_ffi_exports {
                     None => return -22, // -EINVAL
                 };
 
-                let device_ready = dev_ref.is_ready();
-
-                match DRIVER_INSTANCE.init(dev_ref, device_ready) {
+                match DRIVER_INSTANCE.init(dev_ref) {
                     Ok(()) => 0,
                     Err(e) => e.to_errno(),
                 }

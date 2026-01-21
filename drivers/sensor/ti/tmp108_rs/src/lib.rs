@@ -28,6 +28,8 @@ pub struct Tmp108Driver {
     sample: i32,
     /// Device ID
     id: u16,
+    /// Bus address
+    addr: u16,
 }
 
 impl Default for Tmp108Driver {
@@ -54,21 +56,32 @@ impl Tmp108Driver {
         Self {
             sample: 2000, // Default to 20.00°C
             id: 0,
+            addr: 0,
         }
     }
 }
 
 impl SensorDriver for Tmp108Driver {
-    fn init(&mut self, dev: DeviceRef, device_ready: bool) -> SensorResult<()> {
-        if !device_ready {
-            return Err(SensorError::NotReady);
-        }
-
+    fn init(&mut self, dev: DeviceRef) -> SensorResult<()> {
         // SAFETY: dev is guaranteed valid, config points to Tmp108RsConfig
         let cfg = unsafe { dev.config_as::<Tmp108RsConfig>() };
 
         // Now you can access the i2c_dt_spec bus information
-        let _i2c_bus = &cfg.bus;
+        let i2c_bus = &cfg.bus;
+
+        info!("TMP108 detected at I2C address 0x{:02X}", i2c_bus.addr);
+
+        self.addr = cfg.bus.addr;
+
+        match self.adr {
+            0x48 => {
+                info!("TMP11x address valid: 0x{:02X}", self.addr);
+            }
+            _ => {
+                info!("TMP11x address invalid: 0x{:02X}", self.addr);
+                return Err(SensorError::InvalidArgument); // -EINVAL
+            }
+        }
 
         // For now, just set a random device ID
         self.id = 0x1234;

@@ -46,7 +46,9 @@ impl DeviceRef {
         unsafe { raw::device_is_ready(self.as_ptr()) }
     }
 
-    /// Access the device config as a specific type
+    /// Access the device config as a reference to a specific type
+    ///
+    /// Returns a reference without copying the config struct.
     ///
     /// # Safety
     /// The caller must ensure that:
@@ -68,7 +70,9 @@ impl DeviceRef {
         &*((*self.as_ptr()).config as *const T)
     }
 
-    /// Access the device data as a specific type
+    /// Access the device data as a reference to a specific type
+    ///
+    /// Returns a reference without copying the data struct.
     ///
     /// # Safety
     /// The caller must ensure that:

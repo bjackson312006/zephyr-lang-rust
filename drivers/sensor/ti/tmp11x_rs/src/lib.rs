@@ -13,6 +13,29 @@ use embedded_sensors_hal::sensor;
 use embedded_sensors_hal::temperature::{DegreesCelsius, TemperatureSensor};
 use zephyr::sensor::{SensorError, SensorResult};
 
+/// FFI binding for tmp11x_dev_config struct from C code.
+///
+/// This must match the C struct definition exactly.
+#[repr(C)]
+pub struct Tmp11xDevConfig {
+    /// I2C device tree spec
+    pub bus: zephyr::raw::i2c_dt_spec,
+    /// Output data rate
+    pub odr: u16,
+    /// Oversampling configuration
+    pub oversampling: u16,
+    /// Alert pin polarity
+    pub alert_pin_polarity: bool,
+    /// Alert mode
+    pub alert_mode: bool,
+    /// Alert data ready select
+    pub alert_dr_sel: bool,
+    /// Store attribute values
+    pub store_attr_values: bool,
+    // Note: alert_gpio (gpio_dt_spec) is conditionally compiled with CONFIG_TMP11X_RS_TRIGGER
+    // If needed, it can be added with #[cfg(feature = "trigger")]
+}
+
 /// TMP11x driver state
 ///
 /// This structure holds the runtime state for a TMP11x sensor instance.
@@ -23,6 +46,8 @@ pub struct Tmp11xDriver {
     sample: i32,
     /// Device ID
     id: u16,
+    /// Bus address
+    addr: u16,
 }
 
 impl Default for Tmp11xDriver {
@@ -49,15 +74,27 @@ impl Tmp11xDriver {
         Self {
             sample: 2000, // Default to 20.00°C
             id: 0,
+            addr: 0,
         }
     }
 }
 
 impl SensorDriver for Tmp11xDriver {
-    fn init(&mut self, _dev: DeviceRef, device_ready: bool) -> SensorResult<()> {
-        if !device_ready {
-            return Err(SensorError::NotReady);
+    fn init(&mut self, dev: DeviceRef) -> SensorResult<()> {
+        // SAFETY: The FFI bindings to set logger is safe to call here.
+        unsafe {
+            zephyr::set_logger().unwrap();
         }
+
+        info!("DJ init");
+
+        // SAFETY: dev is guaranteed valid, config points to Tmp11xDevConfig
+        let cfg = unsafe { dev.config_as::<Tmp11xDevConfig>() };
+
+        // Store the I2C bus address
+        self.addr = cfg.bus.addr;
+
+        info!("TMP11x detected at I2C address 0x{:02X}", self.addr);
 
         // In a real implementation, we would:
         // 1. Read and verify the device ID from register
@@ -86,6 +123,7 @@ impl SensorDriver for Tmp11xDriver {
                     }
                 };
 
+                info!("Temperature rad I2C address 0x{:02X}", self.addr);
                 self.sample = match sensor.temperature() {
                     Ok(temperature) => temperature as i32,
                     Err(e) => {
