@@ -42,8 +42,8 @@ struct tmp108_rs_config {
 				     &tmp108_rs_config_##inst##t, POST_KERNEL,                                  \
 				     CONFIG_SENSOR_INIT_PRIORITY, &tmp108_rs_driver_api);
 
-#define TMP_RS_INIT(n) TMP_RS_DEFINE(n, TI_TMP108)
+#define TMP10_RS_INIT(n) TMP_RS_DEFINE(n, TI_TMP108_RS)
 #undef DT_DRV_COMPAT
-#define DT_DRV_COMPAT ti_tmp108
-DT_INST_FOREACH_STATUS_OKAY(TMP_RS_INIT)
+#define DT_DRV_COMPAT ti_tmp108_rs
+DT_INST_FOREACH_STATUS_OKAY(TMP10_RS_INIT)
 
