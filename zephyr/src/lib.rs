@@ -73,7 +73,6 @@ pub mod device;
 pub mod driver;
 pub mod embassy;
 pub mod error;
-pub mod i2c;
 pub mod logging;
 pub mod object;
 pub mod sensor;
@@ -91,6 +90,9 @@ pub mod work;
 pub use error::{Error, Result};
 
 pub use logging::set_logger;
+
+// Re-export i2c from device module for convenience
+pub use device::i2c;
 
 /// Re-exported for local macro use.
 pub use paste::paste;

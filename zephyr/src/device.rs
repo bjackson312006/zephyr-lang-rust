@@ -13,6 +13,7 @@ use crate::sync::atomic::{AtomicBool, Ordering};
 pub mod device_ref;
 pub mod flash;
 pub mod gpio;
+pub mod i2c;
 pub mod temperature_sensor;
 
 pub use device_ref::DeviceRef;
