@@ -143,6 +143,7 @@ pub trait SensorDriver {
 /// ```
 ///
 /// # Generated C Symbols
+/// https://docs.zephyrproject.org/latest/doxygen/html/structsensor__driver__api.html#a4708070fd6654ecbbe631819aba319bd
 ///
 /// This generates the following C-callable symbols:
 /// - `<prefix>_driver_api` - The sensor API vtable (static)
