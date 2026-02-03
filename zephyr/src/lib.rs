@@ -91,8 +91,8 @@ pub use error::{Error, Result};
 
 pub use logging::set_logger;
 
-// Re-export i2c from device module for convenience
-pub use device::i2c;
+// Re-export device modules for convenience
+pub use device::{gpio, i2c};
 
 /// Re-exported for local macro use.
 pub use paste::paste;
