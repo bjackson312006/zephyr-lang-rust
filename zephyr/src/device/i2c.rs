@@ -73,13 +73,7 @@ impl I2cDevice {
             return Ok(());
         }
 
-        let ret = unsafe {
-            raw::i2c_write_dt(
-                self.spec.as_ptr(),
-                buf.as_ptr(),
-                buf.len() as u32,
-            )
-        };
+        let ret = unsafe { raw::i2c_write_dt(self.spec.as_ptr(), buf.as_ptr(), buf.len() as u32) };
 
         if ret < 0 {
             Err(Self::error_from_errno(ret))
@@ -97,13 +91,8 @@ impl I2cDevice {
             return Ok(());
         }
 
-        let ret = unsafe {
-            raw::i2c_read_dt(
-                self.spec.as_ptr(),
-                buf.as_mut_ptr(),
-                buf.len() as u32,
-            )
-        };
+        let ret =
+            unsafe { raw::i2c_read_dt(self.spec.as_ptr(), buf.as_mut_ptr(), buf.len() as u32) };
 
         if ret < 0 {
             Err(Self::error_from_errno(ret))

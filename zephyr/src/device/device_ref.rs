@@ -4,8 +4,8 @@
 //! from C FFI code. The wrapper ensures pointer validity at the FFI boundary and
 //! provides safe methods for common operations.
 
-use core::ptr::NonNull;
 use crate::raw;
+use core::ptr::NonNull;
 
 /// A safe reference to a Zephyr device
 ///
