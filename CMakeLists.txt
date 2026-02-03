@@ -157,6 +157,35 @@ ${config_paths}
   # rules in CMake are inconsistent, at best.
   # TODO: Figure out how to factor these out.
 
+  # Ensure code formatting compliance
+  add_custom_command(
+    OUTPUT rust_fmt_cmd
+    USES_TERMINAL
+    COMMAND
+      ${CMAKE_COMMAND} -E
+      env BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      ZEPHYR_BASE=${ZEPHYR_BASE}
+      DOTCONFIG=${DOTCONFIG}
+      ZEPHYR_DTS=${ZEPHYR_DTS}
+      INCLUDE_DIRS="${include_dirs}"
+      INCLUDE_DEFINES="${include_defines}"
+      WRAPPER_FILE="${WRAPPER_FILE}"
+      DT_AUGMENTS="${DT_AUGMENTS}"
+      BINARY_DIR_INCLUDE_GENERATED="${BINARY_DIR_INCLUDE_GENERATED}"
+      cargo fmt
+    COMMENT "Running cargo fmt on Rust application"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  )
+
+  add_custom_target(rust_fmt
+    DEPENDS rust_fmt_cmd
+        # The variables, defined at the top level, don't seem to be accessible here.
+        offsets_h
+        syscall_list_h_target
+        driver_validation_h_target
+        kobj_types_h_target
+  )
+
   # Ensure clippy compliance
   add_custom_command(
     OUTPUT rust_clippy_cmd
@@ -297,6 +326,7 @@ ${config_paths}
   target_link_libraries(app PUBLIC $<TARGET_PROPERTY:linker,rt_library> -Wl,--allow-multiple-definition ${RUST_LIBRARY})
   add_dependencies(app librustapp)
   add_dependencies(app rust_clippy)
+  add_dependencies(app rust_fmt)
 
   # Presumably, Rust applications will have no C source files, but cmake will require them.
   # Add an empty file so that this will build.  The main will come from the rust library.
@@ -394,6 +424,35 @@ ${config_paths}
   # seems "challenging" in CMake (to be polite), as many of these contain spaces, and the quoting
   # rules in CMake are inconsistent, at best.
   # TODO: Figure out how to factor these out.
+
+  # Ensure code formatting compliance
+  add_custom_command(
+    OUTPUT rust_fmt_cmd_drv_${DRIVER_NAME}
+    USES_TERMINAL
+    COMMAND
+      ${CMAKE_COMMAND} -E
+      env BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      ZEPHYR_BASE=${ZEPHYR_BASE}
+      DOTCONFIG=${DOTCONFIG}
+      ZEPHYR_DTS=${ZEPHYR_DTS}
+      INCLUDE_DIRS="${include_dirs}"
+      INCLUDE_DEFINES="${include_defines}"
+      WRAPPER_FILE="${WRAPPER_FILE}"
+      DT_AUGMENTS="${DT_AUGMENTS}"
+      BINARY_DIR_INCLUDE_GENERATED="${BINARY_DIR_INCLUDE_GENERATED}"
+      cargo fmt
+    COMMENT "Running cargo fmt on Rust driver ${DRIVER_NAME}"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  )
+
+  add_custom_target(rust_fmt_drv_${DRIVER_NAME}
+    DEPENDS rust_fmt_cmd_drv_${DRIVER_NAME}
+        # The variables, defined at the top level, don't seem to be accessible here.
+        offsets_h
+        syscall_list_h_target
+        driver_validation_h_target
+        kobj_types_h_target
+  )
 
   # Ensure clippy compliance
   add_custom_command(
@@ -535,6 +594,7 @@ ${config_paths}
   target_link_libraries(app PUBLIC $<TARGET_PROPERTY:linker,rt_library> -Wl,--allow-multiple-definition ${RUST_LIBRARY})
   add_dependencies(app librustdrv_${DRIVER_NAME})
   add_dependencies(app rust_clippy_drv_${DRIVER_NAME})
+  add_dependencies(app rust_fmt_drv_${DRIVER_NAME})
 
   # Rust drivers provide their own C file for device tree bindings but provide some basic c wrapper declarations in case
   # it is needed when a rust application is not compiled for panic and logging definition.
