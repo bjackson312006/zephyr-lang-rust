@@ -1,9 +1,8 @@
 //! Device wrappers for temperature sensor.
 
-
 use super::{NoStatic, Unique};
 use crate::raw;
- use log::info;
+use log::info;
 
 /// A flash controller
 ///
@@ -37,32 +36,40 @@ impl TemperatureSensor {
     }
 
     #[doc = " @brief Get the value of the sensor.\n\n This function reads the sensor and returns the value.\n\n @return The value of the sensor, or a negative error code if the\n         sensor could not be read."]
-    pub fn read_ambient_temperature(&self) -> Result<TemperatureValue,::core::ffi::c_int> {
-       unsafe {
-
-            let mut temp : raw::sensor_value = Default::default();
-        	let ret = raw::sensor_attr_set(self.device, raw::sensor_channel_SENSOR_CHAN_AMBIENT_TEMP,
-                                           raw::sensor_attribute_SENSOR_ATTR_OFFSET, &mut temp);
+    pub fn read_ambient_temperature(&self) -> Result<TemperatureValue, ::core::ffi::c_int> {
+        unsafe {
+            let mut temp: raw::sensor_value = Default::default();
+            let ret = raw::sensor_attr_set(
+                self.device,
+                raw::sensor_channel_SENSOR_CHAN_AMBIENT_TEMP,
+                raw::sensor_attribute_SENSOR_ATTR_OFFSET,
+                &mut temp,
+            );
             if ret != 0 {
                 info!("Fail sensor_attr_set {}", ret);
             }
 
-            let mut temp : raw::sensor_value = Default::default();
+            let mut temp: raw::sensor_value = Default::default();
             let ret = raw::sensor_sample_fetch(self.device);
             if ret != 0 {
                 info!("Fail sensor_sample_fetch");
                 return Err(ret);
             }
 
-            let ret = raw::sensor_channel_get(self.device, raw::sensor_channel_SENSOR_CHAN_AMBIENT_TEMP, &mut temp);
+            let ret = raw::sensor_channel_get(
+                self.device,
+                raw::sensor_channel_SENSOR_CHAN_AMBIENT_TEMP,
+                &mut temp,
+            );
             if ret != 0 {
                 info!("Fail sensor_channel_get");
                 return Err(ret);
             }
 
-            Ok(TemperatureValue{val1: temp.val1, val2: temp.val2})
+            Ok(TemperatureValue {
+                val1: temp.val1,
+                val2: temp.val2,
+            })
         }
-
     }
 }
-

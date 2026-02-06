@@ -308,6 +308,46 @@ impl GpioPin {
         })
     }
 
+    /// Create a GpioPin from a device tree spec pointer
+    ///
+    /// This is useful when working with GPIO specs from C configuration structs.
+    ///
+    /// # Safety
+    /// - `spec` must point to a valid `gpio_dt_spec` structure
+    /// - The spec must remain valid for the lifetime of this `GpioPin`
+    /// - This creates a pin without unique instance tracking - caller must ensure
+    ///   the pin is not used from multiple places simultaneously
+    ///
+    /// # Note
+    /// This uses a static GpioStatic instance, so async operations on pins created
+    /// this way will share callback state. This is generally fine for interrupt-based
+    /// operations but be aware of this if using multiple GPIO pins asynchronously.
+    pub unsafe fn from_dt_spec(spec: *const raw::gpio_dt_spec) -> Option<Self> {
+        if spec.is_null() {
+            return None;
+        }
+
+        // Use a static GpioStatic for pins created from dt_spec
+        // This is safe because the GpioStatic is just callback state
+        static GPIO_STATIC: GpioStatic = GpioStatic::new();
+
+        let spec_ref = &*spec;
+
+        // Validate that the port pointer is not null
+        if spec_ref.port.is_null() {
+            return None;
+        }
+
+        Some(GpioPin {
+            pin: raw::gpio_dt_spec {
+                port: spec_ref.port,
+                pin: spec_ref.pin,
+                dt_flags: spec_ref.dt_flags,
+            },
+            data: &GPIO_STATIC,
+        })
+    }
+
     /// Verify that the device is ready for use.  At a minimum, this means the device has been
     /// successfully initialized.
     pub fn is_ready(&self) -> bool {
@@ -364,6 +404,69 @@ impl GpioPin {
                 0 => false,
                 1 => true,
                 _ => panic!("TODO: Handle gpio get error"),
+            }
+        }
+    }
+
+    /// Configure the pin as an input
+    ///
+    /// # Safety
+    ///
+    /// Concurrency safety is determined by the underlying driver.
+    pub fn configure_input(&mut self) {
+        self.configure(raw::ZR_GPIO_INPUT);
+    }
+
+    /// Configure the pin as an output
+    ///
+    /// # Safety
+    ///
+    /// Concurrency safety is determined by the underlying driver.
+    pub fn configure_output(&mut self, initial_value: bool) {
+        self.configure(raw::ZR_GPIO_OUTPUT);
+        self.set(initial_value);
+    }
+
+    /// Enable interrupt on the pin with specified mode
+    ///
+    /// # Parameters
+    /// * `mode` - Interrupt mode (e.g., `GPIO_INT_EDGE_RISING`, `GPIO_INT_EDGE_FALLING`,
+    ///   `GPIO_INT_EDGE_BOTH`, `GPIO_INT_LEVEL_HIGH`, `GPIO_INT_LEVEL_LOW`)
+    ///
+    /// # Returns
+    /// * `Ok(())` on success
+    /// * `Err(errno)` on failure, where errno is the negative error code from Zephyr
+    ///
+    /// # Safety
+    ///
+    /// Concurrency safety is determined by the underlying driver.
+    pub fn enable_interrupt(&mut self, mode: raw::gpio_flags_t) -> Result<(), c_int> {
+        unsafe {
+            let ret = raw::gpio_pin_interrupt_configure_dt(&self.pin, mode);
+            if ret < 0 {
+                Err(ret)
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    /// Disable interrupt on the pin
+    ///
+    /// # Returns
+    /// * `Ok(())` on success
+    /// * `Err(errno)` on failure, where errno is the negative error code from Zephyr
+    ///
+    /// # Safety
+    ///
+    /// Concurrency safety is determined by the underlying driver.
+    pub fn disable_interrupt(&mut self) -> Result<(), c_int> {
+        unsafe {
+            let ret = raw::gpio_pin_interrupt_configure_dt(&self.pin, raw::ZR_GPIO_INT_DISABLE);
+            if ret < 0 {
+                Err(ret)
+            } else {
+                Ok(())
             }
         }
     }

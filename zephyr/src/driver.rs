@@ -2,8 +2,8 @@
 //!
 //! This module provides traits and types for implementing Zephyr device drivers in Rust.
 
-use core::ffi::c_int;
 use crate::raw;
+use core::ffi::c_int;
 
 /// A reference to a Zephyr device instance
 pub struct Device {
@@ -164,7 +164,12 @@ pub trait SensorDriver: Sized {
     fn channel_get(&self, chan: SensorChannel) -> Result<SensorValue, c_int>;
 
     /// Set a sensor attribute (optional)
-    fn attr_set(&mut self, chan: SensorChannel, attr: SensorAttribute, val: &SensorValue) -> Result<(), c_int> {
+    fn attr_set(
+        &mut self,
+        chan: SensorChannel,
+        attr: SensorAttribute,
+        val: &SensorValue,
+    ) -> Result<(), c_int> {
         let _ = (chan, attr, val);
         Err(-22) // -EINVAL
     }
@@ -175,4 +180,3 @@ pub trait SensorDriver: Sized {
         Err(-22) // -EINVAL
     }
 }
-

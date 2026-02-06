@@ -615,8 +615,7 @@ impl SensorValue {
     ///
     /// Ok(SensorValue) if successful, Err if the value is out of range.
     pub fn from_micro(micro: i64) -> Result<Self, ()> {
-        if micro < (i32::MIN as i64 - 1) * 1_000_000 || micro > (i32::MAX as i64 + 1) * 1_000_000
-        {
+        if micro < (i32::MIN as i64 - 1) * 1_000_000 || micro > (i32::MAX as i64 + 1) * 1_000_000 {
             return Err(());
         }
 

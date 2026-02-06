@@ -51,12 +51,14 @@ pub trait SensorDriver {
     ///
     /// # Parameters
     /// * `_dev` - Safe reference to the device structure
-    /// * `_trig` - Pointer to the trigger configuration
     /// * `_handler` - Trigger handler callback
+    ///
+    /// # Note
+    /// The trigger type and parameters are validated at the FFI boundary.
+    /// This method is called only when a valid trigger configuration is provided.
     fn trigger_set(
         &mut self,
         _dev: DeviceRef,
-        _trig: *const crate::raw::sensor_trigger,
         _handler: crate::raw::sensor_trigger_handler_t,
     ) -> SensorResult<()> {
         Err(SensorError::NotSupported)
@@ -67,30 +69,23 @@ pub trait SensorDriver {
     /// # Parameters
     /// * `dev` - Safe reference to the device structure
     /// * `channel` - The sensor channel to fetch from
-    fn sample_fetch(
-        &mut self,
-        dev: DeviceRef,
-        channel: SensorChannel,
-    ) -> SensorResult<()>;
+    fn sample_fetch(&mut self, dev: DeviceRef, channel: SensorChannel) -> SensorResult<()>;
 
     /// Fetch sample(s) from a specific sensor channel (optional)
     ///
     /// # Parameters
     /// * `_dev` - Safe reference to the device structure
     /// * `_channel` - The sensor channel to fetch from
-    fn sample_fetch_chan(
-        &mut self,
-        _dev: DeviceRef,
-        _channel: SensorChannel,
-    ) -> SensorResult<()> {
+    fn sample_fetch_chan(&mut self, _dev: DeviceRef, _channel: SensorChannel) -> SensorResult<()> {
         Err(SensorError::NotSupported)
     }
 
     /// Get channel value (after fetch)
     ///
     /// # Parameters
+    /// * `dev` - Safe reference to the device structure
     /// * `channel` - The sensor channel to read from
-    fn channel_get(&self, channel: SensorChannel) -> SensorResult<SensorValue>;
+    fn channel_get(&self, dev: DeviceRef, channel: SensorChannel) -> SensorResult<SensorValue>;
 }
 
 /// Macro to generate FFI exports for a sensor driver
@@ -123,7 +118,7 @@ pub trait SensorDriver {
 /// #     fn attr_get(&self, _dev: DeviceRef, _ch: SensorChannel, _attr: i32) -> SensorResult<SensorValue> {
 /// #         Ok(SensorValue::default())
 /// #     }
-/// #     fn trigger_set(&mut self, _dev: DeviceRef, _trig: *const zephyr::raw::sensor_trigger, _handler: zephyr::raw::sensor_trigger_handler_t) -> SensorResult<()> {
+/// #     fn trigger_set(&mut self, _dev: DeviceRef, _handler: zephyr::raw::sensor_trigger_handler_t) -> SensorResult<()> {
 /// #         Ok(())
 /// #     }
 /// #     fn sample_fetch(&mut self, _dev: DeviceRef, _ch: SensorChannel) -> SensorResult<()> {
@@ -169,8 +164,8 @@ macro_rules! sensor_ffi_exports {
         prefix: $prefix:ident
     ) => {
         use core::ffi::c_int;
-        use $crate::sensor::{SensorChannel, SensorDriver, SensorValue};
         use $crate::device::DeviceRef;
+        use $crate::sensor::{SensorChannel, SensorDriver, SensorValue};
 
         paste::paste! {
             // Global driver instance
@@ -279,7 +274,13 @@ macro_rules! sensor_ffi_exports {
                     None => return -22, // -EINVAL
                 };
 
-                match DRIVER_INSTANCE.trigger_set(dev_ref, trig, handler) {
+                // Validate trigger configuration at FFI boundary
+                if trig.is_null() || handler.is_none() {
+                    return -22; // -EINVAL
+                }
+
+                // Trigger validation passed, call driver implementation
+                match DRIVER_INSTANCE.trigger_set(dev_ref, handler) {
                     Ok(()) => 0,
                     Err(e) => e.to_errno(),
                 }
@@ -310,7 +311,13 @@ macro_rules! sensor_ffi_exports {
                 chan: u32,
                 val: *mut $crate::raw::sensor_value,
             ) -> c_int {
-                match DRIVER_INSTANCE.channel_get(SensorChannel::from(chan as i32)) {
+                // SAFETY: Convert raw pointer to safe DeviceRef at FFI boundary
+                let dev_ref = match unsafe { DeviceRef::from_ptr(dev) } {
+                    Some(d) => d,
+                    None => return -22, // -EINVAL
+                };
+
+                match DRIVER_INSTANCE.channel_get(dev_ref, SensorChannel::from(chan as i32)) {
                     Ok(result) => {
                         (*val).val1 = result.val1;
                         (*val).val2 = result.val2;
