@@ -31,9 +31,10 @@ pub struct Tmp108RsConfig {
 
 /// C struct that holds a pointer to the Rust data.
 /// This must match the C struct definition exactly.
+/// This definition is fixed to point to a rust object.
 #[repr(C)]
-struct Tmp108RsDataPtr {
-    rust_ptr: *mut Tmp108RsData,
+pub struct Tmp108RsData {
+    pub rust_ptr: *mut Tmp108RsDataInner,
 }
 
 /// Storage for GPIO interrupt callback with device context
@@ -43,7 +44,7 @@ struct Tmp108RsDataPtr {
 struct Tmp108CallbackStorage {
     /// Zephyr callback structure
     callback: UnsafeCell<raw::gpio_callback>,
-    /// Pointer to the device for accessing Tmp108RsData
+    /// Pointer to the device for accessing Tmp108RsDataInner
     device_ptr: *const raw::device,
 }
 
@@ -62,7 +63,8 @@ impl Tmp108CallbackStorage {
         cb: *mut raw::gpio_callback,
         _pins: raw::gpio_port_pins_t,
     ) {
-        // Logging acquire interrups, so commenting here for now till an alternative is found
+        // Logging acquire mutex, so commenting here for now till an alternative is found.
+        // Mutex cannot be held in ISR.
         //info!("TMP108 GPIO interrupt fired, pins: 0x{:08X}", pins);
 
         // TODO: Figure out a cleaner way to do this.
@@ -77,7 +79,7 @@ impl Tmp108CallbackStorage {
             let device_ptr = (*storage).device_ptr;
 
             // Get the data pointer from the device
-            let data_ptr_struct = (*device_ptr).data.cast::<Tmp108RsDataPtr>();
+            let data_ptr_struct = (*device_ptr).data.cast::<Tmp108RsData>();
             let data = &mut *(*data_ptr_struct).rust_ptr;
 
             // Call the registered trigger handler if set
@@ -109,7 +111,7 @@ unsafe impl Sync for Tmp108CallbackStorage {}
 /// to it is stored in the C struct's rust_ptr field.
 ///
 /// This approach completely decouples the Rust and C struct layouts.
-pub struct Tmp108RsData {
+pub struct Tmp108RsDataInner {
     /// TMP108 sensor instance
     sensor: Option<Tmp108<I2cDevice>>,
     /// Last sampled temperature
@@ -129,7 +131,7 @@ pub struct Tmp108RsData {
     callback_storage: Option<Box<Tmp108CallbackStorage>>,
 }
 
-impl Tmp108RsData {
+impl Tmp108RsDataInner {
     /// Initialize the data structure to default values
     pub const fn new() -> Self {
         Self {
@@ -145,15 +147,15 @@ impl Tmp108RsData {
     }
 }
 
-impl Default for Tmp108RsData {
+impl Default for Tmp108RsDataInner {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// TMP108 driver (stateless - all state is in Tmp108RsData)
+/// TMP108 driver (stateless - all state is in Tmp108RsDataInner)
 ///
-/// This is just a marker type that implements the SensorDriver trait.
+/// This is just a marker type that implements the TypedSensorDriver trait.
 /// The actual per-instance state is stored in Tmp108RsData.
 pub struct Tmp108Driver;
 
@@ -168,6 +170,7 @@ impl Default for Tmp108Driver {
 // - tmp108_rs_driver_api (sensor_driver_api vtable)
 // - tmp108_rs_init (init function)
 // - Internal FFI wrappers for all sensor operations
+// - Automatic extraction of typed Tmp108RsDataInner and Tmp108RsConfig
 zephyr::sensor_ffi_exports!(
     driver: Tmp108Driver,
     prefix: tmp108_rs
@@ -183,15 +186,18 @@ impl Tmp108Driver {
 }
 
 impl SensorDriver for Tmp108Driver {
-    fn init(&mut self, dev: DeviceRef) -> SensorResult<()> {
-        // SAFETY: dev is guaranteed valid, config points to Tmp108RsConfig
-        let cfg = unsafe { dev.config_as::<Tmp108RsConfig>() };
+    type Data = Tmp108RsData;
+    type DataInner = Tmp108RsDataInner;
+    type Config = Tmp108RsConfig;
 
-        // SAFETY: Access the C struct that holds the pointer
-        let data_ptr = unsafe { dev.data_as_mut::<Tmp108RsDataPtr>() };
-
+    fn init(
+        &mut self,
+        dev: DeviceRef,
+        data_ptr: &mut Self::Data,
+        cfg: &Self::Config,
+    ) -> SensorResult<()> {
         // Allocate the Rust data structure on the heap
-        let data = Box::new(Tmp108RsData::new());
+        let data = Box::new(Tmp108RsDataInner::new());
 
         // Store the raw pointer in the C struct
         data_ptr.rust_ptr = Box::into_raw(data);
@@ -283,13 +289,13 @@ impl SensorDriver for Tmp108Driver {
         Ok(())
     }
 
-    fn sample_fetch(&mut self, dev: DeviceRef, channel: SensorChannel) -> SensorResult<()> {
-        // SAFETY: Access the C struct that holds the pointer
-        let data_ptr = unsafe { dev.data_as::<Tmp108RsDataPtr>() };
-
-        // SAFETY: Dereference the pointer to get the Rust data
-        let data = unsafe { &mut *data_ptr.rust_ptr };
-
+    fn sample_fetch(
+        &mut self,
+        _dev: DeviceRef,
+        data: &mut Self::DataInner,
+        _config: &Self::Config,
+        channel: SensorChannel,
+    ) -> SensorResult<()> {
         match channel {
             SensorChannel::All | SensorChannel::AmbientTemp => {
                 // Get mutable sensor reference
@@ -308,13 +314,13 @@ impl SensorDriver for Tmp108Driver {
         }
     }
 
-    fn channel_get(&self, dev: DeviceRef, channel: SensorChannel) -> SensorResult<SensorValue> {
-        // SAFETY: Access the C struct that holds the pointer
-        let data_ptr = unsafe { dev.data_as::<Tmp108RsDataPtr>() };
-
-        // SAFETY: Dereference the pointer to get the Rust data
-        let data = unsafe { &*data_ptr.rust_ptr };
-
+    fn channel_get(
+        &self,
+        _dev: DeviceRef,
+        data: &Self::DataInner,
+        _config: &Self::Config,
+        channel: SensorChannel,
+    ) -> SensorResult<SensorValue> {
         match channel {
             SensorChannel::AmbientTemp | SensorChannel::All => {
                 // Return cached temperature value
@@ -329,14 +335,10 @@ impl SensorDriver for Tmp108Driver {
     fn trigger_set(
         &mut self,
         dev: DeviceRef,
-        handler: crate::raw::sensor_trigger_handler_t,
+        data: &mut Self::DataInner,
+        _config: &Self::Config,
+        handler: raw::sensor_trigger_handler_t,
     ) -> SensorResult<()> {
-        // SAFETY: Access the C struct that holds the pointer
-        let data_ptr = unsafe { dev.data_as::<Tmp108RsDataPtr>() };
-
-        // SAFETY: Dereference the pointer to get the Rust data
-        let data = unsafe { &mut *data_ptr.rust_ptr };
-
         // Check if GPIO is configured for triggers
         if data.alert_gpio.is_none() {
             info!("No GPIO pin configured for triggers");
@@ -354,7 +356,9 @@ impl SensorDriver for Tmp108Driver {
 
     fn attr_set(
         &mut self,
-        dev: DeviceRef,
+        _dev: DeviceRef,
+        data: &mut Self::DataInner,
+        _config: &Self::Config,
         channel: SensorChannel,
         attr: i32,
         value: &SensorValue,
@@ -364,12 +368,6 @@ impl SensorDriver for Tmp108Driver {
             SensorChannel::AmbientTemp | SensorChannel::All => {}
             _ => return Err(SensorError::InvalidChannel),
         }
-
-        // SAFETY: Access the C struct that holds the pointer
-        let data_ptr = unsafe { dev.data_as::<Tmp108RsDataPtr>() };
-
-        // SAFETY: Dereference the pointer to get the Rust data
-        let data = unsafe { &mut *data_ptr.rust_ptr };
 
         // Get mutable sensor reference
         let sensor = data.sensor.as_mut().ok_or(SensorError::NotReady)?;
@@ -455,7 +453,9 @@ impl SensorDriver for Tmp108Driver {
 
     fn attr_get(
         &self,
-        dev: DeviceRef,
+        _dev: DeviceRef,
+        data: &Self::DataInner,
+        _config: &Self::Config,
         channel: SensorChannel,
         attr: i32,
     ) -> SensorResult<SensorValue> {
@@ -464,12 +464,6 @@ impl SensorDriver for Tmp108Driver {
             SensorChannel::AmbientTemp | SensorChannel::All => {}
             _ => return Err(SensorError::InvalidChannel),
         }
-
-        // SAFETY: Access the C struct that holds the pointer
-        let data_ptr = unsafe { dev.data_as::<Tmp108RsDataPtr>() };
-
-        // SAFETY: Dereference the pointer to get the Rust data
-        let data = unsafe { &*data_ptr.rust_ptr };
 
         // Verify sensor is initialized
         let _sensor = data.sensor.as_ref().ok_or(SensorError::NotReady)?;
