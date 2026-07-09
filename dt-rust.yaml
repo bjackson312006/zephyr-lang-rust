@@ -156,21 +156,24 @@
       raw: !Myself
       device: crate::device::tachometer::Tachometer
 
-# Matcher for `Uart` from uart.rs.
-- name: uart
+# Matcher for `Uart` from uart_async.rs.
+# This is specific to Zephyr's Async UART API. Zephyr has other UART APIs, which have
+# their own matchers in this file. When adding a compatible to this matcher, please make
+# sure that driver implments the Async UART API specifically (not just any of the UART APIs).
+- name: uart-async
   cfg: CONFIG_SERIAL
   rules:
     - !Compatible
       names:
-        - "nxp,lpc-usart" # u_Note: Should probably pull in more eventually but this is what i have
+        - "nxp,lpc-usart"
         - "zephyr,uart-emul"
         - "zephyr,native-pty-uart"
       level: 0
   actions:
     - !Instance
       raw: !Myself
-      device: crate::device::uart::Uart
-      static_type: crate::device::uart::UartStatic
+      device: crate::device::uart_async::Uart
+      static_type: crate::device::uart_async::UartStatic
 
 # Matcher for `RtcRaw` from rts.rs
 - name: rtc-raw

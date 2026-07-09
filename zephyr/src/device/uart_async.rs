@@ -1,4 +1,4 @@
-//! Rust wrapper for Zephyr UART driver.
+//! Rust wrapper for Zephyr UART Async driver.
 
 // # u_Note: This driver uses Zephyr's async UART API, which requires DMA as far as I'm aware. Eventually, we'll probably want to add wrappers for the other non-async Zephyr UART drivers as well. It would probably be best to rename this to uart_async.rs or something similar, and create totally separate drivers for the other APIs.
 

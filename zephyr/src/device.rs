@@ -24,7 +24,8 @@ pub mod pwm;
 #[cfg(CONFIG_PWM)]
 pub mod pwm_fan;
 #[cfg(CONFIG_SERIAL)]
-pub mod uart;
+pub mod uart_async;
+pub mod uart_interrupt;
 #[cfg(CONFIG_RTC)]
 pub mod rtc;
 #[cfg(CONFIG_FUEL_GAUGE)]
