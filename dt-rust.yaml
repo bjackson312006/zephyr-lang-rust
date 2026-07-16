@@ -208,6 +208,7 @@
       names:
         - "sbs,sbs-gauge-new-api"
         - "zephyr,fuel-gauge-emul"
+        - "ti,bq40z50"
       level: 0
   actions:
     - !Instance
