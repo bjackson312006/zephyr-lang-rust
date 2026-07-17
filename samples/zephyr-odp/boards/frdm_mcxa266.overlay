@@ -1,8 +1,8 @@
 #include <zephyr/dt-bindings/pwm/pwm.h>
 
 &lpi2c1 {
-	u_temperature_sensor: ti_tmp11x@48 {
-		compatible = "ti,tmp11x";
+	u_temperature_sensor: ti_tmp108@48 {
+		compatible = "ti,tmp108";
 		reg = <0x48>;
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -33,7 +33,7 @@
 		pwms = <&ctimer0 1 40000 PWM_POLARITY_NORMAL>;
 		max-rpm = <5000>;
 		min-rpm = <0>;
-		min-start-rpm = <3000>;
+		min-start-rpm = <1000>;
 	};
 };
 
@@ -61,7 +61,6 @@
 &pinctrl {
 	ctimer0_default: ctimer0_default {
 		group0 {
-			/* PWM output P2_12 (J2_12) */
 			pinmux = <CT0_MAT0_P2_12>;
 			drive-strength = "high";
 			slew-rate = "fast";

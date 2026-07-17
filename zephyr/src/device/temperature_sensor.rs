@@ -33,7 +33,9 @@ impl TemperatureSensor {
             return None;
         }
 
-        Some(TemperatureSensor { device })
+        let sensor = TemperatureSensor { device };
+        let _ = sensor.set_continuous_conversion();
+        Some(sensor)
     }
 
     #[doc = " @brief Get the value of the sensor.\n\n This function reads the sensor and returns the value.\n\n @return The value of the sensor, or a negative error code if the\n         sensor could not be read."]
@@ -56,5 +58,21 @@ impl TemperatureSensor {
             Ok(TemperatureValue{val1: temp.val1, val2: temp.val2})
         }
 
+    }
+
+    /// Put a TMP108 into continuous-conversion mode.
+    pub fn set_continuous_conversion(&self) -> Result<(), ::core::ffi::c_int> {
+        // SENSOR_ATTR_PRIV_START (19) + 2 == SENSOR_ATTR_TMP108_CONTINUOUS_CONVERSION_MODE
+        const SENSOR_ATTR_TMP108_CONTINUOUS_CONVERSION_MODE: raw::sensor_attribute =
+        raw::sensor_attribute_SENSOR_ATTR_PRIV_START + 2;
+        let ret = unsafe {
+            raw::sensor_attr_set(
+                self.device,
+                raw::sensor_channel_SENSOR_CHAN_AMBIENT_TEMP,
+                SENSOR_ATTR_TMP108_CONTINUOUS_CONVERSION_MODE,
+                core::ptr::null(),
+            )
+        };
+        if ret != 0 { Err(ret) } else { Ok(()) }
     }
 }

@@ -31,7 +31,7 @@
 		pwms = <&sc_timer 7 40000 0>;
 		max-rpm = <5000>;
 		min-rpm = <0>;
-		min-start-rpm = <3000>;
+		min-start-rpm = <1000>;
 	};
 };
 

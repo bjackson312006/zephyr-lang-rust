@@ -94,6 +94,7 @@
       names:
         - "ti,tmp11x_rs"
         - "ti,tmp11x"
+        - "ti,tmp108"
         - "fintek,f75303"
       level: 0
   actions:
