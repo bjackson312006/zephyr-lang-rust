@@ -9,6 +9,7 @@ common:
     - nrf52840dk/nrf52840'
     - 'mimxrt685_evk/mimxrt685s/cm33'
     - 'native_sim/native/64'
+    - 'frdm_mcxa266'
 tests:
   sample.rust.helloworld:
     tags: ODP

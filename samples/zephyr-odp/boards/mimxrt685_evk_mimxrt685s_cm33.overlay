@@ -1,10 +1,3 @@
-/*
- * Copyright (c) 2024 Linaro LTD
- * SPDX-License-Identifier: Apache-2.0
- *
- * Devicetree overlay for thermal-service sample on mimxrt685_evk
- */
-
 &flexcomm2 {
 	u_temperature_sensor: ti_tmp11x@48 {
 		compatible = "ti,tmp11x";
@@ -13,18 +6,18 @@
 		#size-cells = <0>;
 	};
 
-	fuel_gauge: sbs-gauge@b {
-		compatible = "sbs,sbs-gauge-new-api";
-		reg = <0x0b>;
-	};
+	// fuel_gauge: sbs-gauge@b {
+	// 	compatible = "sbs,sbs-gauge-new-api";
+	// 	reg = <0x0b>;
+	// };
 };
 
-// / {
-// 	fuel_gauge: fuel-gauge-emul {
-// 		compatible = "zephyr,fuel-gauge-emul";
-// 		status = "okay";
-// 	};
-// };
+/ {
+	fuel_gauge: fuel-gauge-emul {
+		compatible = "zephyr,fuel-gauge-emul";
+		status = "okay";
+	};
+};
 
 / {
     tachometer: tachometer {

@@ -163,6 +163,7 @@
     - !Compatible
       names:
         - "nxp,lpc-usart"
+        - "nxp,lpuart"
         - "zephyr,native-pty-uart"
       level: 0
   actions:

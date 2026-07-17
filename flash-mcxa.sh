@@ -1,5 +1,5 @@
 #!/bin/bash
-# Flash script for the zephyr-odp sample.
+# Flash script for the zephyr-odp sample on the frdm_mcxa266 board.
 # On WSL it copies the ELF to Windows and flashes via the Windows probe-rs
 # (works around WSL USB passthrough issues). On native Linux it flashes
 # directly with the local probe-rs.
@@ -19,7 +19,11 @@ else
     echo "Detected Native Linux."
 fi
 
-CHIP="MIMXRT685SFVKB"
+# probe-rs chip target (override with the CHIP env var if needed).
+# probe-rs has no distinct "MCXA266" target; the A266 is part of the MCX A27x
+# family and flashes with the MCXA276 target. Set CHIP=... if your probe-rs
+# build exposes a more specific target.
+CHIP="${CHIP:-MCXA276}"
 WS="$(west topdir)"
 BUILD_DIR="${BUILD_DIR:-$WS/build}"
 BINARY="$BUILD_DIR/zephyr/zephyr.elf"

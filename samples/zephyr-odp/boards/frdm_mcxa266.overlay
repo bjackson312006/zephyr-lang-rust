@@ -1,0 +1,83 @@
+#include <zephyr/dt-bindings/pwm/pwm.h>
+
+&lpi2c1 {
+	u_temperature_sensor: ti_tmp11x@48 {
+		compatible = "ti,tmp11x";
+		reg = <0x48>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
+
+	// fuel_gauge: sbs-gauge@b {
+	// 	compatible = "sbs,sbs-gauge-new-api";
+	// 	reg = <0x0b>;
+	// };
+};
+
+/ {
+	fuel_gauge: fuel-gauge-emul {
+		compatible = "zephyr,fuel-gauge-emul";
+		status = "okay";
+	};
+};
+
+/ {
+	my_tach: tachometer {
+		compatible = "zephyr,tach-gpio";
+		gpios = <&gpio3 10 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
+		pulses-per-round = <2>;
+	};
+
+	fan0: my-fan {
+		compatible = "pwm-fan";
+		pwms = <&ctimer0 1 40000 PWM_POLARITY_NORMAL>;
+		max-rpm = <5000>;
+		min-rpm = <0>;
+		min-start-rpm = <3000>;
+	};
+};
+
+/ {
+	/* The actual RTC driver in zephyr */
+	rtc_emul: rtc_emul {
+		compatible = "zephyr,rtc-emul";
+		status = "okay";
+	};
+
+	/* The Rust wrapper node */
+	rs_rtc0: rs-rtc {
+		compatible = "rs,rtc";
+		rtc = <&rtc_emul>;
+		resolution-hz = <1>;
+	};
+};
+
+/ {
+	aliases {
+		pwm-test = &ctimer0;
+	};
+};
+
+&pinctrl {
+	ctimer0_default: ctimer0_default {
+		group0 {
+			/* PWM output P2_12 (J2_12) */
+			pinmux = <CT0_MAT0_P2_12>;
+			drive-strength = "high";
+			slew-rate = "fast";
+		};
+	};
+};
+
+&ctimer0 {
+	compatible = "nxp,ctimer-pwm";
+	status = "okay";
+	pinctrl-0 = <&ctimer0_default>;
+	pinctrl-names = "default";
+	#pwm-cells = <3>;
+	prescaler = <1>;
+};
+
+u_uart: &lpuart2 {
+	status = "okay";
+};
