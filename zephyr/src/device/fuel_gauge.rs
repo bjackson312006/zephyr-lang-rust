@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2026 Open Device Partnership and Contributors
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 //! Device wrapper for a fuel gauge.
 
 /// A fuel gauge device.

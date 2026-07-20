@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2026 Open Device Partnership and Contributors
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #![no_std]
 
 use core::ffi::c_int;
@@ -43,7 +49,6 @@ struct FuelGaugeData {
     temperature_dk: u16,
     remaining_capacity_mins: u32,
     runtime_to_empty_mins: u32,
-    runtime_to_full_mins: u32,
     manufacturer_name: ManufacturerName,
     device_name: DeviceName,
     device_chemistry: DeviceChemistry,
@@ -67,9 +72,6 @@ impl FuelGaugeData {
             })?,
             runtime_to_empty_mins: gauge.runtime_to_empty().inspect_err(|err| {
                 log::error!("Failed to read fuel gauge runtime_to_empty: {}", err)
-            })?,
-            runtime_to_full_mins: gauge.runtime_to_full().inspect_err(|err| {
-                log::error!("Failed to read fuel gauge runtime_to_full: {}", err)
             })?,
             manufacturer_name: gauge.manufacturer_name().inspect_err(|err| {
                 log::error!("Failed to read fuel gauge manufacturer_name: {}", err)
