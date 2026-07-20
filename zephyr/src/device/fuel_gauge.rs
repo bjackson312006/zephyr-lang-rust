@@ -6,6 +6,8 @@
 
 //! Device wrapper for a fuel gauge.
 
+use crate::raw::fuel_gauge_prop_type;
+
 /// A fuel gauge device.
 pub struct FuelGauge {
     device: *const crate::raw::device,
@@ -14,49 +16,49 @@ pub struct FuelGauge {
 #[rustfmt::skip]
 #[repr(u32)]
 pub(crate) enum FuelGaugeProp {
-    AvgCurrentUa = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_AVG_CURRENT_UA,
-    Cutoff = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_CHARGE_CUTOFF,
-    CurrentUa = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_CURRENT_UA,
-    CycleCount = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_CYCLE_COUNT,
-    ConnectState = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_CONNECT_STATE,
-    Flags = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_FLAGS,
-    FullChargeCapacityUah = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_FULL_CHARGE_CAPACITY_UAH,
-    PresentState = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_PRESENT_STATE,
-    RemainingCapacityUah = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_REMAINING_CAPACITY_UAH,
-    RuntimeToEmptyMins = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_RUNTIME_TO_EMPTY_MINS,
-    RuntimeToFullMins = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_RUNTIME_TO_FULL_MINS,
-    SbsMfrAccessWord = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_SBS_MFR_ACCESS,
-    AbsoluteStateOfChargePct = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_ABSOLUTE_STATE_OF_CHARGE_PCT,
-    RelativeStateOfChargePct = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_RELATIVE_STATE_OF_CHARGE_PCT,
-    TemperatureDk = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_TEMPERATURE_DK,
-    VoltageUv = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_VOLTAGE_UV,
-    SbsMode = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_SBS_MODE,
-    ChgCurrentUa = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_CHARGE_CURRENT_UA,
-    ChgVoltageUv = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_CHARGE_VOLTAGE_UV,
-    FgStatus = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_STATUS,
-    DesignCap = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_DESIGN_CAPACITY,
-    DesignVoltMv = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_DESIGN_VOLTAGE_MV,
-    SbsAtRate = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_SBS_ATRATE,
-    SbsAtRateTimeToFullMins = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_SBS_ATRATE_TIME_TO_FULL_MINS,
-    SbsAtRateTimeToEmptyMins = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_SBS_ATRATE_TIME_TO_EMPTY_MINS,
-    SbsAtRateOk = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_SBS_ATRATE_OK,
-    SbsRemainingCapacityAlarm = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_SBS_REMAINING_CAPACITY_ALARM,
-    SbsRemainingTimeAlarmMins = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_SBS_REMAINING_TIME_ALARM_MINS,
-    CurrentDirection = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_CURRENT_DIRECTION,
-    StateOfChargeAlarmPct = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_STATE_OF_CHARGE_ALARM_PCT,
-    LowVoltageAlarmUv = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_LOW_VOLTAGE_ALARM_UV,
-    HighVoltageAlarmUv = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_HIGH_VOLTAGE_ALARM_UV,
-    LowCurrentAlarmUa = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_LOW_CURRENT_ALARM_UA,
-    HighCurrentAlarmUa = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_HIGH_CURRENT_ALARM_UA,
-    LowTemperatureAlarmDk = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_LOW_TEMPERATURE_ALARM_DK,
-    HighTemperatureAlarmDk = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_HIGH_TEMPERATURE_ALARM_DK,
-    GpioVoltageUv = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_GPIO_VOLTAGE_UV,
-    LowGpioAlarmUv = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_LOW_GPIO_ALARM_UV,
-    HighGpioAlarmUv = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_HIGH_GPIO_ALARM_UV,
-    AdcMode = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_ADC_MODE,
-    CcConfig = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_CC_CONFIG,
-    StateOfHealth = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_STATE_OF_HEALTH,
-    ThermVoltageUv = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_THERM_VOLTAGE_UV,
+    AvgCurrentUa = fuel_gauge_prop_type::FUEL_GAUGE_AVG_CURRENT_UA,
+    Cutoff = fuel_gauge_prop_type::FUEL_GAUGE_CHARGE_CUTOFF,
+    CurrentUa = fuel_gauge_prop_type::FUEL_GAUGE_CURRENT_UA,
+    CycleCount = fuel_gauge_prop_type::FUEL_GAUGE_CYCLE_COUNT,
+    ConnectState = fuel_gauge_prop_type::FUEL_GAUGE_CONNECT_STATE,
+    Flags = fuel_gauge_prop_type::FUEL_GAUGE_FLAGS,
+    FullChargeCapacityUah = fuel_gauge_prop_type::FUEL_GAUGE_FULL_CHARGE_CAPACITY_UAH,
+    PresentState = fuel_gauge_prop_type::FUEL_GAUGE_PRESENT_STATE,
+    RemainingCapacityUah = fuel_gauge_prop_type::FUEL_GAUGE_REMAINING_CAPACITY_UAH,
+    RuntimeToEmptyMins = fuel_gauge_prop_type::FUEL_GAUGE_RUNTIME_TO_EMPTY_MINS,
+    RuntimeToFullMins = fuel_gauge_prop_type::FUEL_GAUGE_RUNTIME_TO_FULL_MINS,
+    SbsMfrAccessWord = fuel_gauge_prop_type::FUEL_GAUGE_SBS_MFR_ACCESS,
+    AbsoluteStateOfChargePct = fuel_gauge_prop_type::FUEL_GAUGE_ABSOLUTE_STATE_OF_CHARGE_PCT,
+    RelativeStateOfChargePct = fuel_gauge_prop_type::FUEL_GAUGE_RELATIVE_STATE_OF_CHARGE_PCT,
+    TemperatureDk = fuel_gauge_prop_type::FUEL_GAUGE_TEMPERATURE_DK,
+    VoltageUv = fuel_gauge_prop_type::FUEL_GAUGE_VOLTAGE_UV,
+    SbsMode = fuel_gauge_prop_type::FUEL_GAUGE_SBS_MODE,
+    ChgCurrentUa = fuel_gauge_prop_type::FUEL_GAUGE_CHARGE_CURRENT_UA,
+    ChgVoltageUv = fuel_gauge_prop_type::FUEL_GAUGE_CHARGE_VOLTAGE_UV,
+    FgStatus = fuel_gauge_prop_type::FUEL_GAUGE_STATUS,
+    DesignCap = fuel_gauge_prop_type::FUEL_GAUGE_DESIGN_CAPACITY,
+    DesignVoltMv = fuel_gauge_prop_type::FUEL_GAUGE_DESIGN_VOLTAGE_MV,
+    SbsAtRate = fuel_gauge_prop_type::FUEL_GAUGE_SBS_ATRATE,
+    SbsAtRateTimeToFullMins = fuel_gauge_prop_type::FUEL_GAUGE_SBS_ATRATE_TIME_TO_FULL_MINS,
+    SbsAtRateTimeToEmptyMins = fuel_gauge_prop_type::FUEL_GAUGE_SBS_ATRATE_TIME_TO_EMPTY_MINS,
+    SbsAtRateOk = fuel_gauge_prop_type::FUEL_GAUGE_SBS_ATRATE_OK,
+    SbsRemainingCapacityAlarm = fuel_gauge_prop_type::FUEL_GAUGE_SBS_REMAINING_CAPACITY_ALARM,
+    SbsRemainingTimeAlarmMins = fuel_gauge_prop_type::FUEL_GAUGE_SBS_REMAINING_TIME_ALARM_MINS,
+    CurrentDirection = fuel_gauge_prop_type::FUEL_GAUGE_CURRENT_DIRECTION,
+    StateOfChargeAlarmPct = fuel_gauge_prop_type::FUEL_GAUGE_STATE_OF_CHARGE_ALARM_PCT,
+    LowVoltageAlarmUv = fuel_gauge_prop_type::FUEL_GAUGE_LOW_VOLTAGE_ALARM_UV,
+    HighVoltageAlarmUv = fuel_gauge_prop_type::FUEL_GAUGE_HIGH_VOLTAGE_ALARM_UV,
+    LowCurrentAlarmUa = fuel_gauge_prop_type::FUEL_GAUGE_LOW_CURRENT_ALARM_UA,
+    HighCurrentAlarmUa = fuel_gauge_prop_type::FUEL_GAUGE_HIGH_CURRENT_ALARM_UA,
+    LowTemperatureAlarmDk = fuel_gauge_prop_type::FUEL_GAUGE_LOW_TEMPERATURE_ALARM_DK,
+    HighTemperatureAlarmDk = fuel_gauge_prop_type::FUEL_GAUGE_HIGH_TEMPERATURE_ALARM_DK,
+    GpioVoltageUv = fuel_gauge_prop_type::FUEL_GAUGE_GPIO_VOLTAGE_UV,
+    LowGpioAlarmUv = fuel_gauge_prop_type::FUEL_GAUGE_LOW_GPIO_ALARM_UV,
+    HighGpioAlarmUv = fuel_gauge_prop_type::FUEL_GAUGE_HIGH_GPIO_ALARM_UV,
+    AdcMode = fuel_gauge_prop_type::FUEL_GAUGE_ADC_MODE,
+    CcConfig = fuel_gauge_prop_type::FUEL_GAUGE_CC_CONFIG,
+    StateOfHealth = fuel_gauge_prop_type::FUEL_GAUGE_STATE_OF_HEALTH,
+    ThermVoltageUv = fuel_gauge_prop_type::FUEL_GAUGE_THERM_VOLTAGE_UV,
 }
 
 #[repr(u32)]
@@ -64,6 +66,54 @@ pub(crate) enum FuelGaugeBufferProp {
     ManufacturerName = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_MANUFACTURER_NAME,
     DeviceName = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_DEVICE_NAME,
     DeviceChemistry = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_DEVICE_CHEMISTRY,
+}
+
+/// Maximum size of the manufacturer name string.
+/// According to the Zephyr API docs, manufacturer name is 1 byte of string length + 20 bytes of data (21 bytes total). The actual string length is just 20 bytes though.
+const MANUFACTURER_NAME_STRING_SIZE: usize = 20;
+
+/// Represents a fuel gauge's manufacturer name.
+#[derive(Debug)]
+pub struct ManufacturerName {
+    inner: heapless::String<MANUFACTURER_NAME_STRING_SIZE>,
+}
+impl ManufacturerName {
+    /// Returns the manufacturer name.
+    pub fn as_str(&self) -> &str {
+        self.inner.as_str()
+    }
+}
+
+/// Maximum size of the device name string.
+/// According to the Zephyr API docs, device name is 1 byte of string length + 20 bytes of data (21 bytes total). The actual string length is just 20 bytes though.
+const DEVICE_NAME_STRING_SIZE: usize = 20;
+
+/// Represents a fuel gauge's device name.
+#[derive(Debug)]
+pub struct DeviceName {
+    inner: heapless::String<DEVICE_NAME_STRING_SIZE>,
+}
+impl DeviceName {
+    /// Returns the device name.
+    pub fn as_str(&self) -> &str {
+        self.inner.as_str()
+    }
+}
+
+/// Maximum size of the device chemistry string.
+/// According to the Zephyr API docs, device chemistry is 1 byte of string length + 4 bytes of data (5 bytes total). The actual string length is just 4 bytes though.
+const DEVICE_CHEMISTRY_STRING_SIZE: usize = 4;
+
+/// Represents a fuel gauge's device chemistry.
+#[derive(Debug)]
+pub struct DeviceChemistry {
+    inner: heapless::String<DEVICE_CHEMISTRY_STRING_SIZE>,
+}
+impl DeviceChemistry {
+    /// Returns the device chemistry.
+    pub fn as_str(&self) -> &str {
+        self.inner.as_str()
+    }
 }
 
 /// Crate-internal API.
@@ -138,54 +188,6 @@ impl FuelGauge {
                 )
             },
         )
-    }
-}
-
-/// Maximum size of the manufacturer name string.
-/// According to the Zephyr API docs, manufacturer name is 1 byte of string length + 20 bytes of data (21 bytes total). The actual string length is just 20 bytes though.
-const MANUFACTURER_NAME_STRING_SIZE: usize = 20;
-
-/// Represent's a fuel gauge's manufacturer name.
-#[derive(Debug)]
-pub struct ManufacturerName {
-    inner: heapless::String<MANUFACTURER_NAME_STRING_SIZE>,
-}
-impl ManufacturerName {
-    /// Returns the manufacturer name.
-    pub fn as_str(&self) -> &str {
-        self.inner.as_str()
-    }
-}
-
-/// Maximum size of the device name string.
-/// According to the Zephyr API docs, device name is 1 byte of string length + 20 bytes of data (21 bytes total). The actual string length is just 20 bytes though.
-const DEVICE_NAME_STRING_SIZE: usize = 20;
-
-/// Represent's a fuel gauge's device name.
-#[derive(Debug)]
-pub struct DeviceName {
-    inner: heapless::String<DEVICE_NAME_STRING_SIZE>,
-}
-impl DeviceName {
-    /// Returns the device name.
-    pub fn as_str(&self) -> &str {
-        self.inner.as_str()
-    }
-}
-
-/// Maximum size of the device chemistry string.
-/// According to the Zephyr API docs, device chemistry is 1 byte of string length + 4 bytes of data (5 bytes total). The actual string length is just 4 bytes though.
-const DEVICE_CHEMISTRY_STRING_SIZE: usize = 4;
-
-/// Represent's a fuel gauge's device chemistry.
-#[derive(Debug)]
-pub struct DeviceChemistry {
-    inner: heapless::String<DEVICE_CHEMISTRY_STRING_SIZE>,
-}
-impl DeviceChemistry {
-    /// Returns the device chemistry.
-    pub fn as_str(&self) -> &str {
-        self.inner.as_str()
     }
 }
 
