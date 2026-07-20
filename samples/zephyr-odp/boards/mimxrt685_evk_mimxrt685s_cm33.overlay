@@ -5,11 +5,6 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 	};
-
-	// fuel_gauge: sbs-gauge@b {
-	// 	compatible = "sbs,sbs-gauge-new-api";
-	// 	reg = <0x0b>;
-	// };
 };
 
 / {
@@ -45,11 +40,13 @@
     /* The Rust wrapper node */
     rs_rtc0: rs-rtc {
         compatible = "rs,rtc";
-        rtc = <&rtc_emul>;       /* phandle to the real RTC */
-        resolution-hz = <1>;     /* 1 Hz resolution */
+        rtc = <&rtc_emul>;
+        resolution-hz = <1>;
     };
 };
 
 u_uart: &flexcomm0 {
 	status = "okay";
 };
+
+

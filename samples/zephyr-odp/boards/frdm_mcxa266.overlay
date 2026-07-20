@@ -7,11 +7,6 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 	};
-
-	// fuel_gauge: sbs-gauge@b {
-	// 	compatible = "sbs,sbs-gauge-new-api";
-	// 	reg = <0x0b>;
-	// };
 };
 
 / {
@@ -52,12 +47,6 @@
 	};
 };
 
-/ {
-	aliases {
-		pwm-test = &ctimer0;
-	};
-};
-
 &pinctrl {
 	ctimer0_default: ctimer0_default {
 		group0 {
@@ -80,3 +69,6 @@
 u_uart: &lpuart2 {
 	status = "okay";
 };
+
+
+
