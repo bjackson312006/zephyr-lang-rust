@@ -1,16 +1,12 @@
-/*
- * Copyright (c) 2026 Open Device Partnership and Contributors
- *
- * SPDX-License-Identifier: Apache-2.0
- */
+// Copyright (c) 2026 Open Device Partnership and Contributors
+// SPDX-License-Identifier: Apache-2.0
 
 #![no_std]
 
 use core::ffi::c_int;
-use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use static_cell::StaticCell;
-use zephyr::device::fuel_gauge::{DeviceChemistry, DeviceName, FuelGauge, ManufacturerName};
+use zephyr::device::fuel_gauge::{FuelGauge, FuelGaugeString};
 
 // Entry point into the Rust program from Zephyr.
 #[unsafe(no_mangle)]
@@ -35,7 +31,7 @@ extern "C" fn rust_main() {
     let executor = EXECUTOR_MAIN.init(zephyr::embassy::Executor::new());
     executor.run(|spawner| {
         spawner
-            .spawn(fuel_gauge(spawner))
+            .spawn(fuel_gauge())
             .expect("Failed to spawn fuel_gauge()");
     })
 }
@@ -47,11 +43,11 @@ struct FuelGaugeData {
     current_ua: i32,
     voltage_uv: i32,
     temperature_dk: u16,
-    remaining_capacity_mins: u32,
+    remaining_capacity_uah: u32,
     runtime_to_empty_mins: u32,
-    manufacturer_name: ManufacturerName,
-    device_name: DeviceName,
-    device_chemistry: DeviceChemistry,
+    manufacturer_name: FuelGaugeString,
+    device_name: FuelGaugeString,
+    device_chemistry: FuelGaugeString,
 }
 
 impl FuelGaugeData {
@@ -67,7 +63,7 @@ impl FuelGaugeData {
             temperature_dk: gauge
                 .temperature()
                 .inspect_err(|err| log::error!("Failed to read fuel gauge temperature: {}", err))?,
-            remaining_capacity_mins: gauge.remaining_capacity().inspect_err(|err| {
+            remaining_capacity_uah: gauge.remaining_capacity().inspect_err(|err| {
                 log::error!("Failed to read fuel gauge remaining_capacity: {}", err)
             })?,
             runtime_to_empty_mins: gauge.runtime_to_empty().inspect_err(|err| {
@@ -87,7 +83,7 @@ impl FuelGaugeData {
 }
 
 #[embassy_executor::task]
-async fn fuel_gauge(_spawner: Spawner) {
+async fn fuel_gauge() {
     let gauge: FuelGauge = zephyr::devicetree::labels::fuel_gauge::get_instance()
         .expect("Failed to call zephyr::devicetree::labels::fuel_gauge::get_instance()");
 

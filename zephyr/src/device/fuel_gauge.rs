@@ -1,8 +1,5 @@
-/*
- * Copyright (c) 2026 Open Device Partnership and Contributors
- *
- * SPDX-License-Identifier: Apache-2.0
- */
+// Copyright (c) 2026 Open Device Partnership and Contributors
+// SPDX-License-Identifier: Apache-2.0
 
 //! Device wrapper for a fuel gauge.
 
@@ -68,51 +65,61 @@ pub(crate) enum FuelGaugeBufferProp {
     DeviceChemistry = crate::raw::fuel_gauge_prop_type::FUEL_GAUGE_DEVICE_CHEMISTRY,
 }
 
-/// Maximum size of the manufacturer name string.
-/// According to the Zephyr API docs, manufacturer name is 1 byte of string length + 20 bytes of data (21 bytes total). The actual string length is just 20 bytes though.
-const MANUFACTURER_NAME_STRING_SIZE: usize = 20;
+// Fuel gauge buffer prop sizes
+const FUEL_GAUGE_MANUFACTURER_NAME_SIZE: usize = 20;
+const FUEL_GAUGE_DEVICE_NAME_SIZE: usize = 20;
+const FUEL_GAUGE_DEVICE_CHEMISTRY_SIZE: usize = 4;
 
-/// Represents a fuel gauge's manufacturer name.
+/// Maximum size of a `FuelGaugeString`. Strings may be smaller than this, but will not be larger than this, per the guarantees provided in the Zephyr docs.
+/// This number does not contain the 1 "length" byte located at the beginning of the buffer props as indicated by the Zephyr docs.
+const FUEL_GAUGE_STRING_MAX_SIZE: usize = 20;
+
+/// A String returned by the fuel gauge API.
 #[derive(Debug)]
-pub struct ManufacturerName {
-    inner: heapless::String<MANUFACTURER_NAME_STRING_SIZE>,
+pub struct FuelGaugeString {
+    inner: heapless::String<FUEL_GAUGE_STRING_MAX_SIZE>,
 }
-impl ManufacturerName {
-    /// Returns the manufacturer name.
+
+impl FuelGaugeString {
+    /// Returns the string as a `&str`.
     pub fn as_str(&self) -> &str {
         self.inner.as_str()
     }
 }
 
-/// Maximum size of the device name string.
-/// According to the Zephyr API docs, device name is 1 byte of string length + 20 bytes of data (21 bytes total). The actual string length is just 20 bytes though.
-const DEVICE_NAME_STRING_SIZE: usize = 20;
-
-/// Represents a fuel gauge's device name.
-#[derive(Debug)]
-pub struct DeviceName {
-    inner: heapless::String<DEVICE_NAME_STRING_SIZE>,
-}
-impl DeviceName {
-    /// Returns the device name.
-    pub fn as_str(&self) -> &str {
+impl AsRef<str> for FuelGaugeString {
+    fn as_ref(&self) -> &str {
         self.inner.as_str()
     }
 }
 
-/// Maximum size of the device chemistry string.
-/// According to the Zephyr API docs, device chemistry is 1 byte of string length + 4 bytes of data (5 bytes total). The actual string length is just 4 bytes though.
-const DEVICE_CHEMISTRY_STRING_SIZE: usize = 4;
+impl TryFrom<&[u8]> for FuelGaugeString {
+    type Error = crate::error::Error;
 
-/// Represents a fuel gauge's device chemistry.
-#[derive(Debug)]
-pub struct DeviceChemistry {
-    inner: heapless::String<DEVICE_CHEMISTRY_STRING_SIZE>,
-}
-impl DeviceChemistry {
-    /// Returns the device chemistry.
-    pub fn as_str(&self) -> &str {
-        self.inner.as_str()
+    /// Parses a fuel gauge buffer property into a `FuelGaugeString`.
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        let len = *value
+            .first()
+            .ok_or(crate::error::Error(crate::raw::EINVAL))? as usize;
+        if len > FUEL_GAUGE_STRING_MAX_SIZE {
+            return Err(crate::error::Error(crate::raw::EINVAL));
+        }
+
+        let slice = value
+            .get(1..1 + len)
+            .ok_or(crate::error::Error(crate::raw::EINVAL))?;
+        if !slice.is_ascii() {
+            return Err(crate::error::Error(crate::raw::EILSEQ));
+        }
+
+        let str =
+            core::str::from_utf8(slice).map_err(|_| crate::error::Error(crate::raw::EILSEQ))?;
+        let mut inner = heapless::String::<FUEL_GAUGE_STRING_MAX_SIZE>::new();
+        inner
+            .push_str(str)
+            .map_err(|_| crate::error::Error(crate::raw::EINVAL))?;
+
+        Ok(FuelGaugeString { inner })
     }
 }
 
@@ -201,84 +208,27 @@ impl FuelGauge {
     }
 
     /// Reads the gauge's `manufacturer_name` into a string.
-    pub fn manufacturer_name(&self) -> crate::error::Result<ManufacturerName> {
+    pub fn manufacturer_name(&self) -> crate::error::Result<FuelGaugeString> {
         // Add +1 here since the first byte is the string length
-        let mut buffer: [u8; MANUFACTURER_NAME_STRING_SIZE + 1] =
-            const { [0; MANUFACTURER_NAME_STRING_SIZE + 1] };
+        let mut buffer = const { [0u8; FUEL_GAUGE_MANUFACTURER_NAME_SIZE + 1] };
         self.get_buffer_prop(FuelGaugeBufferProp::ManufacturerName, &mut buffer)?;
-
-        let len = buffer[0] as usize;
-        if len > MANUFACTURER_NAME_STRING_SIZE {
-            return Err(crate::error::Error(crate::raw::EINVAL));
-        }
-
-        let slice = &buffer[1..1 + len];
-        if !slice.is_ascii() {
-            return Err(crate::error::Error(crate::raw::EILSEQ));
-        }
-
-        let str =
-            core::str::from_utf8(slice).map_err(|_| crate::error::Error(crate::raw::EILSEQ))?;
-        let mut string = heapless::String::<MANUFACTURER_NAME_STRING_SIZE>::new();
-        string
-            .push_str(str)
-            .map_err(|_| crate::error::Error(crate::raw::EINVAL))?;
-
-        Ok(ManufacturerName { inner: string })
+        FuelGaugeString::try_from(buffer.as_slice())
     }
 
     /// Reads the gauge's `device_name` into a string.
-    pub fn device_name(&self) -> crate::error::Result<DeviceName> {
+    pub fn device_name(&self) -> crate::error::Result<FuelGaugeString> {
         // Add +1 here since the first byte is the string length
-        let mut buffer: [u8; DEVICE_NAME_STRING_SIZE + 1] =
-            const { [0; DEVICE_NAME_STRING_SIZE + 1] };
+        let mut buffer = const { [0u8; FUEL_GAUGE_DEVICE_NAME_SIZE + 1] };
         self.get_buffer_prop(FuelGaugeBufferProp::DeviceName, &mut buffer)?;
-
-        let len = buffer[0] as usize;
-        if len > DEVICE_NAME_STRING_SIZE {
-            return Err(crate::error::Error(crate::raw::EINVAL));
-        }
-
-        let slice = &buffer[1..1 + len];
-        if !slice.is_ascii() {
-            return Err(crate::error::Error(crate::raw::EILSEQ));
-        }
-
-        let str =
-            core::str::from_utf8(slice).map_err(|_| crate::error::Error(crate::raw::EILSEQ))?;
-        let mut string = heapless::String::<DEVICE_NAME_STRING_SIZE>::new();
-        string
-            .push_str(str)
-            .map_err(|_| crate::error::Error(crate::raw::EINVAL))?;
-
-        Ok(DeviceName { inner: string })
+        FuelGaugeString::try_from(buffer.as_slice())
     }
 
     /// Reads the gauge's `device_chemistry` into a string.
-    pub fn device_chemistry(&self) -> crate::error::Result<DeviceChemistry> {
+    pub fn device_chemistry(&self) -> crate::error::Result<FuelGaugeString> {
         // Add +1 here since the first byte is the string length
-        let mut buffer: [u8; DEVICE_CHEMISTRY_STRING_SIZE + 1] =
-            const { [0; DEVICE_CHEMISTRY_STRING_SIZE + 1] };
+        let mut buffer = const { [0u8; FUEL_GAUGE_DEVICE_CHEMISTRY_SIZE + 1] };
         self.get_buffer_prop(FuelGaugeBufferProp::DeviceChemistry, &mut buffer)?;
-
-        let len = buffer[0] as usize;
-        if len > DEVICE_CHEMISTRY_STRING_SIZE {
-            return Err(crate::error::Error(crate::raw::EINVAL));
-        }
-
-        let slice = &buffer[1..1 + len];
-        if !slice.is_ascii() {
-            return Err(crate::error::Error(crate::raw::EILSEQ));
-        }
-
-        let str =
-            core::str::from_utf8(slice).map_err(|_| crate::error::Error(crate::raw::EILSEQ))?;
-        let mut string = heapless::String::<DEVICE_CHEMISTRY_STRING_SIZE>::new();
-        string
-            .push_str(str)
-            .map_err(|_| crate::error::Error(crate::raw::EINVAL))?;
-
-        Ok(DeviceChemistry { inner: string })
+        FuelGaugeString::try_from(buffer.as_slice())
     }
 
     /// Runtime Dynamic Battery Parameters.
