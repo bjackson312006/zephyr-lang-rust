@@ -114,7 +114,9 @@ fn main() -> anyhow::Result<()> {
         .allowlist_item_if("CONFIG_UART_.*", || options.contains("CONFIG_SERIAL"))
         .allowlist_function_if("uart_.*", || options.contains("CONFIG_SERIAL"))
         // Fuel Gauge
-        .allowlist_item_if("CONFIG_FUEL_GAUGE.*", || options.contains("CONFIG_FUEL_GAUGE"))
+        .allowlist_item_if("CONFIG_FUEL_GAUGE.*", || {
+            options.contains("CONFIG_FUEL_GAUGE")
+        })
         .allowlist_item_if("fuel_gauge_.*", || options.contains("CONFIG_FUEL_GAUGE"))
         .allowlist_item_if("FUEL_GAUGE_.*", || options.contains("CONFIG_FUEL_GAUGE"))
         .allowlist_function_if("fuel_gauge_.*", || options.contains("CONFIG_FUEL_GAUGE"))
