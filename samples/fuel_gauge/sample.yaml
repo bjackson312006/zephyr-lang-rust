@@ -2,7 +2,6 @@ sample:
   description: Fuel Gauge Sample
   name: Fuel Gauge Sample
 common:
-  harness: console
   tags: rust
   filter: CONFIG_RUST_SUPPORTED
   platform_allow:
