@@ -122,7 +122,7 @@ Then, you will need a ``build.rs`` file to call the support function.  The follo
 .. code-block:: rust
 
    fn main() {
-       zephyr_build::export_bool_kconfig();
+       zephyr_build::export_kconfig_bool_options();
    }
 
 At this point, it will be possible to use the ``cfg`` directive in Rust on boolean Kconfig values.
@@ -151,3 +151,23 @@ Other functionality
 
 Access to other functionality within zephyr is a work-in-progress, and this document will be updated
 as that is done.
+
+
+Generating board specific Rust documentation
+********************
+
+Traits are used to augment the devices in the devicetree representation (see dt-rust.yaml).
+These traits simplify and provide a safe way of interacting with the device.
+
+The devicetree differs by board and project configuration, so you might want to generate the documentation
+for your board and project configuration.
+To build documentation for a specific board and project configuration, use the following command:
+
+.. code-block:: console
+
+   west build -t rustdoc -b ${BOARD} ${MY_PROJECT_APPLICATION}
+
+This will generate the rust documentation and you will find the root of the documentation at ``build/rust/target/${RUST_TARGET}/doc/rustapp/index.html``.
+
+You'll find the devicetree documentation in ``build/rust/target/${RUST_TARGET}/doc/zephyr/devicetree/index.html``
+alongside the documentation of other crates included in your project.
